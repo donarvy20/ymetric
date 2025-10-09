@@ -930,12 +930,13 @@
         }
         
         // Función para obtener la clase de color para el checkbox
-        function getGroupColorClass(groupEvalColor) {
-            if (!groupEvalColor) return '';
+        // Esta función ya no es necesaria y será eliminada en favor de usar student.groupColorClass directamente.
+        // function getGroupColorClass(groupEvalColor) {
+        //     if (!groupEvalColor) return '';
             
-            const index = GROUP_COLORS.indexOf(groupEvalColor);
-            return index > 0 ? `group-color-${index} group-colored` : '';
-        }
+        //     const index = GROUP_COLORS.indexOf(groupEvalColor);
+        //     return index > 0 ? `group-color-${index} group-colored` : '';
+        // }
         
         // Función auxiliar para actualizar el icono de evaluación individual
         function updateEvaluationCheckIcon(studentId, row) {
@@ -1097,8 +1098,8 @@
                 // Determinar el color de fondo de la fila (si fue evaluado grupalmente)
                 const groupColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
                 
-                // Determinar la clase de color para el checkbox
-                const checkColorClass = getGroupColorClass(student.groupEvalColor);
+                // Determinar la clase de color para el checkbox: Usa la clase guardada + la clase 'group-colored'
+                const checkColorClass = student.groupColorClass ? `${student.groupColorClass} group-colored` : '';
 
 
                 tableHtml += `
@@ -1226,6 +1227,7 @@
                 // Limpiar clase de color del checkbox
                 const checkbox = studentRow.querySelector('.student-checkbox');
                 if (checkbox) {
+                    // Limpia las clases de color y la clase 'group-colored'
                     checkbox.className = checkbox.className.split(' ').filter(c => !c.startsWith('group-color-') && c !== 'group-colored').join(' ');
                 }
             }
@@ -1418,8 +1420,10 @@
                         // Aplicar color al checkbox
                         const checkbox = studentRow.querySelector('.student-checkbox');
                         if (checkbox) {
+                             // Limpiar clases existentes
                              checkbox.className = checkbox.className.split(' ').filter(c => !c.startsWith('group-color-') && c !== 'group-colored').join(' ');
-                             checkbox.classList.add(assignedClass);
+                             // Añadir las nuevas clases de color
+                             checkbox.classList.add(assignedClass, 'group-colored');
                         }
                     }
 
