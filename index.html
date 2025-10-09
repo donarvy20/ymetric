@@ -155,6 +155,27 @@
             margin-left: 5px;
             font-size: 1.1rem;
         }
+
+        /* --- NUEVO ESTILO: Checkbox más grande --- */
+        .larger-checkbox .form-check-input {
+            width: 1.5em; 
+            height: 1.5em; 
+            margin-top: 0;
+            margin-right: 10px;
+        }
+        
+        /* --- NUEVO ESTILO: Colores de fondo del Checkbox (Usando los colores de GROUP_COLORS) --- */
+        .form-check-input.group-color-1:checked { background-color: #ffe0b2; border-color: #e6b26d; }
+        .form-check-input.group-color-2:checked { background-color: #b2ebf2; border-color: #6ec0c9; }
+        .form-check-input.group-color-3:checked { background-color: #c8e6c9; border-color: #92b593; }
+        .form-check-input.group-color-4:checked { background-color: #f8bbd0; border-color: #e491ae; }
+        .form-check-input.group-color-5:checked { background-color: #cfd8dc; border-color: #9ea7aa; }
+        .form-check-input.group-color-6:checked { background-color: #f0f4c3; border-color: #d8dd93; }
+        /* Para asegurar que el color se muestre al seleccionar y que el check sea oscuro */
+        .form-check-input.group-colored:checked {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 5-5'/%3e%3c/svg%3e");
+        }
+
     </style>
 </head>
 <body>
@@ -863,23 +884,75 @@
 
         // Paleta de colores suaves para resaltado de grupos (HEX codes)
         const GROUP_COLORS = [
-            '#e9ecef', // Gris claro (Default, debe ser el primero si no hay evaluación)
-            '#ffe0b2', // Naranja suave (Peach)
-            '#b2ebf2', // Azul claro (Cyan)
-            '#c8e6c9', // Verde claro (Mint)
-            '#f8bbd0', // Rosa suave
-            '#cfd8dc', // Gris azulado
-            '#f0f4c3', // Lima suave
+            '#e9ecef', // 0: Gris claro (Default/no evaluado)
+            '#ffe0b2', // 1: Naranja suave (Peach)
+            '#b2ebf2', // 2: Azul claro (Cyan)
+            '#c8e6c9', // 3: Verde claro (Mint)
+            '#f8bbd0', // 4: Rosa suave
+            '#cfd8dc', // 5: Gris azulado
+            '#f0f4c3', // 6: Lima suave
         ];
-        let lastColorIndex = 0;
-
+        
+        // Función para obtener el siguiente color y asignarlo al grupo
         function getNextGroupColor(groupId) {
             let group = appData.studentGroups.find(g => g.id === groupId);
-            if (!group.groupColor) {
-                lastColorIndex = (lastColorIndex % (GROUP_COLORS.length - 1)) + 1; // Skip the first (default) color
-                group.groupColor = GROUP_COLORS[lastColorIndex];
+            
+            // Si el grupo no tiene un índice de color asignado o si es 0 (default/gris), asignamos el siguiente
+            if (group.colorIndex === undefined || group.colorIndex === 0) {
+                // Encontramos el índice más alto usado actualmente en todos los grupos y aumentamos en 1
+                let maxIndex = 0;
+                appData.studentGroups.forEach(g => {
+                    if (g.colorIndex > maxIndex) {
+                        maxIndex = g.colorIndex;
+                    }
+                });
+                
+                // Calculamos el nuevo índice (cíclico, saltando el índice 0)
+                const newIndex = (maxIndex % (GROUP_COLORS.length - 1)) + 1;
+                
+                group.colorIndex = newIndex;
             }
-            return group.groupColor;
+            
+            return {
+                hex: GROUP_COLORS[group.colorIndex],
+                class: `group-color-${group.colorIndex}`
+            };
+        }
+        
+        // Función para limpiar el color de grupo (volver a gris/default)
+        function clearGroupColor(groupId, studentId) {
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            const studentData = group.students.find(s => s.id === studentId);
+            if (studentData) {
+                 studentData.groupEvalColor = null;
+                 studentData.groupColorClass = null;
+            }
+        }
+        
+        // Función para obtener la clase de color para el checkbox
+        function getGroupColorClass(groupEvalColor) {
+            if (!groupEvalColor) return '';
+            
+            const index = GROUP_COLORS.indexOf(groupEvalColor);
+            return index > 0 ? `group-color-${index} group-colored` : '';
+        }
+        
+        // Función auxiliar para actualizar el icono de evaluación individual
+        function updateEvaluationCheckIcon(studentId, row) {
+            const groupId = document.getElementById('select-group').value;
+            const checklistId = document.getElementById('select-checklist').value;
+
+            const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
+            const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
+            
+            const label = row.querySelector('.form-check-label');
+            const nameText = label.textContent.replace(/\s<i.*?<\/i>$/, '').trim(); // Eliminar check existente
+            
+            if (totalScore > 0) {
+                label.innerHTML = `${nameText} <i class="bi bi-check-circle-fill evaluated-check"></i>`;
+            } else {
+                label.innerHTML = nameText;
+            }
         }
 
         function renderEvaluationModuleSelectors() {
@@ -987,7 +1060,7 @@
                     <thead class="table-primary sticky-top">
                         <tr>
                             <th class="text-start" style="min-width: 150px;">
-                                <div class="form-check">
+                                <div class="form-check larger-checkbox">
                                     <input class="form-check-input" type="checkbox" id="check-all-students-header" onchange="toggleAllStudents(this.checked)">
                                     <label class="form-check-label" for="check-all-students-header">Estudiante</label>
                                 </div>
@@ -1023,13 +1096,16 @@
 
                 // Determinar el color de fondo de la fila (si fue evaluado grupalmente)
                 const groupColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
+                
+                // Determinar la clase de color para el checkbox
+                const checkColorClass = getGroupColorClass(student.groupEvalColor);
 
 
                 tableHtml += `
                     <tr data-student-id="${student.id}" class="student-row group-evaluated-row" ${groupColor}>
                         <td class="text-start">
-                            <div class="form-check">
-                                <input class="form-check-input student-checkbox" type="checkbox" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()">
+                            <div class="form-check larger-checkbox">
+                                <input class="form-check-input student-checkbox ${checkColorClass}" type="checkbox" id="student-check-${student.id}" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()">
                                 <label class="form-check-label text-truncate" for="student-check-${student.id}">
                                     ${student.name} ${checkIcon}
                                 </label>
@@ -1084,7 +1160,10 @@
         
         // Función auxiliar para actualizar el icono de evaluación individual
         function updateEvaluationCheckIcon(studentId, row) {
-            const studentEvals = appData.evaluations[document.getElementById('select-group').value][document.getElementById('select-checklist').value][studentId] || [];
+            const groupId = document.getElementById('select-group').value;
+            const checklistId = document.getElementById('select-checklist').value;
+
+            const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
             const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
             
             const label = row.querySelector('.form-check-label');
@@ -1141,10 +1220,13 @@
             const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
             if (studentRow) {
                 studentRow.style.backgroundColor = '';
-                const group = appData.studentGroups.find(g => g.id === groupId);
-                const studentData = group.students.find(s => s.id === studentId);
-                if (studentData) {
-                    studentData.groupEvalColor = null; // Quitar el color de grupo del modelo
+                // Limpiar color en el modelo del estudiante
+                clearGroupColor(groupId, studentId);
+                
+                // Limpiar clase de color del checkbox
+                const checkbox = studentRow.querySelector('.student-checkbox');
+                if (checkbox) {
+                    checkbox.className = checkbox.className.split(' ').filter(c => !c.startsWith('group-color-') && c !== 'group-colored').join(' ');
                 }
             }
 
@@ -1279,9 +1361,10 @@
                 .map(cb => cb.dataset.studentId);
 
             // 2. Asignar un color único al grupo seleccionado
-            const assignedColor = getNextGroupColor(groupId);
+            const colorData = getNextGroupColor(groupId);
+            const assignedColor = colorData.hex;
+            const assignedClass = colorData.class;
             
-
             // 3. Seleccionar todos los contenedores de criterio
             const criterionGroups = document.querySelectorAll('#group-evaluation-matrix-container .criterion-group');
             
@@ -1305,10 +1388,11 @@
                     }
                     appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
                     
-                    // Asignar el color al estudiante en el modelo
+                    // Asignar el color y la clase al estudiante en el modelo
                     const studentData = groupData.students.find(s => s.id === studentId);
                     if (studentData) {
                         studentData.groupEvalColor = assignedColor;
+                        studentData.groupColorClass = assignedClass; // Guardar la clase para el checkbox
                     }
                     
                     // Actualizar la vista de la tabla principal (botón y resultados)
@@ -1330,6 +1414,13 @@
                     const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
                     if (studentRow) {
                         studentRow.style.backgroundColor = assignedColor;
+                        
+                        // Aplicar color al checkbox
+                        const checkbox = studentRow.querySelector('.student-checkbox');
+                        if (checkbox) {
+                             checkbox.className = checkbox.className.split(' ').filter(c => !c.startsWith('group-color-') && c !== 'group-colored').join(' ');
+                             checkbox.classList.add(assignedClass);
+                        }
                     }
 
                     updateStudentResults(studentId, groupId, checklistId);
