@@ -142,6 +142,19 @@
             gap: 5px;
             margin-top: 15px;
         }
+        
+        /* Clases dinámicas para coloreado de fondo de fila (Evaluación Grupal) */
+        .group-evaluated-row {
+            transition: background-color 0.3s ease;
+            color: black; /* Asegurar que el texto sea legible */
+        }
+        
+        /* Estilo para el ícono de alumno evaluado individualmente */
+        .evaluated-check {
+            color: var(--success-color);
+            margin-left: 5px;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -848,6 +861,27 @@
         // MÓDULO DE EVALUACIÓN
         // **********************************************
 
+        // Paleta de colores suaves para resaltado de grupos (HEX codes)
+        const GROUP_COLORS = [
+            '#e9ecef', // Gris claro (Default, debe ser el primero si no hay evaluación)
+            '#ffe0b2', // Naranja suave (Peach)
+            '#b2ebf2', // Azul claro (Cyan)
+            '#c8e6c9', // Verde claro (Mint)
+            '#f8bbd0', // Rosa suave
+            '#cfd8dc', // Gris azulado
+            '#f0f4c3', // Lima suave
+        ];
+        let lastColorIndex = 0;
+
+        function getNextGroupColor(groupId) {
+            let group = appData.studentGroups.find(g => g.id === groupId);
+            if (!group.groupColor) {
+                lastColorIndex = (lastColorIndex % (GROUP_COLORS.length - 1)) + 1; // Skip the first (default) color
+                group.groupColor = GROUP_COLORS[lastColorIndex];
+            }
+            return group.groupColor;
+        }
+
         function renderEvaluationModuleSelectors() {
             const selectGroup = document.getElementById('select-group');
             const selectChecklist = document.getElementById('select-checklist');
@@ -982,15 +1016,22 @@
                 const criteriaCount = checklist.criteria.length;
                 const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
                 const performance = getPerformanceLevel(average);
+                
+                // Determinar si el alumno fue evaluado (al menos un score > 0)
+                const isEvaluated = totalScore > 0;
+                const checkIcon = isEvaluated ? '<i class="bi bi-check-circle-fill evaluated-check"></i>' : '';
+
+                // Determinar el color de fondo de la fila (si fue evaluado grupalmente)
+                const groupColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
+
 
                 tableHtml += `
-                    <tr data-student-id="${student.id}" class="student-row">
+                    <tr data-student-id="${student.id}" class="student-row group-evaluated-row" ${groupColor}>
                         <td class="text-start">
                             <div class="form-check">
                                 <input class="form-check-input student-checkbox" type="checkbox" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()">
                                 <label class="form-check-label text-truncate" for="student-check-${student.id}">
-                                    ${student.name}
-                                
+                                    ${student.name} ${checkIcon}
                                 </label>
                             </div>
                         </td>
@@ -1040,6 +1081,22 @@
             evaluationOptions.classList.remove('d-none');
             checkGroupEvaluationReadiness();
         }
+        
+        // Función auxiliar para actualizar el icono de evaluación individual
+        function updateEvaluationCheckIcon(studentId, row) {
+            const studentEvals = appData.evaluations[document.getElementById('select-group').value][document.getElementById('select-checklist').value][studentId] || [];
+            const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
+            
+            const label = row.querySelector('.form-check-label');
+            const nameText = label.textContent.replace(/\s<i.*?<\/i>$/, '').trim(); // Eliminar check existente
+            
+            if (totalScore > 0) {
+                label.innerHTML = `${nameText} <i class="bi bi-check-circle-fill evaluated-check"></i>`;
+            } else {
+                label.innerHTML = nameText;
+            }
+        }
+
 
         function updateStudentResults(studentId, groupId, checklistId) {
             const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
@@ -1057,6 +1114,9 @@
                 const perfCell = row.querySelector('.performance-level');
                 perfCell.textContent = performance.name;
                 perfCell.className = 'performance-level ' + performance.class;
+                
+                // Actualizar el icono de check de evaluación individual
+                updateEvaluationCheckIcon(studentId, row);
             }
         }
 
@@ -1076,8 +1136,20 @@
                 btn.classList.remove('active-score');
             });
             button.classList.add('active-score');
+            
+            // 3. Remover color de evaluación grupal si el alumno se evalúa individualmente
+            const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
+            if (studentRow) {
+                studentRow.style.backgroundColor = '';
+                const group = appData.studentGroups.find(g => g.id === groupId);
+                const studentData = group.students.find(s => s.id === studentId);
+                if (studentData) {
+                    studentData.groupEvalColor = null; // Quitar el color de grupo del modelo
+                }
+            }
 
-            // 3. Update student results and save data
+
+            // 4. Update student results and save data
             updateStudentResults(studentId, groupId, checklistId);
             saveData();
         }
@@ -1200,12 +1272,17 @@
         document.getElementById('apply-group-evaluation').addEventListener('click', () => {
             const groupId = document.getElementById('select-group').value;
             const checklistId = document.getElementById('select-checklist').value;
+            const groupData = appData.studentGroups.find(g => g.id === groupId);
             
             // 1. Obtener los IDs de los estudiantes seleccionados
             const selectedStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked'))
                 .map(cb => cb.dataset.studentId);
 
-            // 2. Seleccionar todos los contenedores de criterio
+            // 2. Asignar un color único al grupo seleccionado
+            const assignedColor = getNextGroupColor(groupId);
+            
+
+            // 3. Seleccionar todos los contenedores de criterio
             const criterionGroups = document.querySelectorAll('#group-evaluation-matrix-container .criterion-group');
             
             if (criterionGroups.length === 0 || selectedStudentIds.length === 0) {
@@ -1215,23 +1292,24 @@
 
             const checklist = appData.checklists.find(c => c.id === checklistId);
             if (!checklist) return;
-
-            // 3. Recorrer los criterios y aplicar el score a todos los estudiantes seleccionados
+            
+            // 4. Recorrer los criterios y aplicar el score a todos los estudiantes seleccionados
             criterionGroups.forEach(groupContainer => {
                 const criterionIndex = parseInt(groupContainer.dataset.criterionIndex, 10);
                 const score = parseInt(groupContainer.dataset.score, 10);
                 
-                const currentLevel = checklist.levels.find(l => l.score === score);
-                const levelName = currentLevel ? currentLevel.name : 'N/A';
-                const levelClass = currentLevel ? currentLevel.colorClass : 'bg-default';
-                const displayLevelName = levelName.split(' ')[0]; 
-
                 selectedStudentIds.forEach(studentId => {
                     // Actualizar el modelo (appData)
                     if (!appData.evaluations[groupId][checklistId][studentId]) {
                         appData.evaluations[groupId][checklistId][studentId] = new Array(checklist.criteria.length).fill(0);
                     }
                     appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
+                    
+                    // Asignar el color al estudiante en el modelo
+                    const studentData = groupData.students.find(s => s.id === studentId);
+                    if (studentData) {
+                        studentData.groupEvalColor = assignedColor;
+                    }
                     
                     // Actualizar la vista de la tabla principal (botón y resultados)
                     const buttonContainer = document.querySelector(`td[data-student-id="${studentId}"][data-criterion-index="${criterionIndex}"] .d-flex`);
@@ -1246,6 +1324,12 @@
                         if(targetButton) {
                             targetButton.classList.add('active-score');
                         }
+                    }
+
+                    // Aplicar el color de fondo a la fila
+                    const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
+                    if (studentRow) {
+                        studentRow.style.backgroundColor = assignedColor;
                     }
 
                     updateStudentResults(studentId, groupId, checklistId);
