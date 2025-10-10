@@ -173,7 +173,7 @@
         .form-check-input.group-color-6:checked { background-color: #f0f4c3; border-color: #d8dd93; }
         /* Para asegurar que el color se muestre al seleccionar y que el check sea oscuro */
         .form-check-input.group-colored:checked {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 5-5'/%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 5-5'/%3e%3csvg%3e");
         }
 
     </style>
@@ -1101,10 +1101,13 @@
                 // Determinar la clase de color para el checkbox: Usa la clase guardada + la clase 'group-colored'
                 const checkColorClass = student.groupColorClass ? `${student.groupColorClass} group-colored` : '';
 
+                // Determinar el color de fondo para la celda del nombre
+                const nameCellColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
+
 
                 tableHtml += `
-                    <tr data-student-id="${student.id}" class="student-row group-evaluated-row" ${groupColor}>
-                        <td class="text-start">
+                    <tr data-student-id="${student.id}" class="student-row group-evaluated-row">
+                        <td class="text-start" ${nameCellColor}>
                             <div class="form-check larger-checkbox">
                                 <input class="form-check-input student-checkbox ${checkColorClass}" type="checkbox" id="student-check-${student.id}" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()">
                                 <label class="form-check-label text-truncate" for="student-check-${student.id}">
@@ -1220,7 +1223,10 @@
             // 3. Remover color de evaluación grupal si el alumno se evalúa individualmente
             const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
             if (studentRow) {
+                // Limpiar el color de fondo de la fila y la celda del nombre
                 studentRow.style.backgroundColor = '';
+                studentRow.querySelector('td:first-child').style.backgroundColor = '';
+                
                 // Limpiar color en el modelo del estudiante
                 clearGroupColor(groupId, studentId);
                 
@@ -1412,10 +1418,11 @@
                         }
                     }
 
-                    // Aplicar el color de fondo a la fila
+                    // Aplicar el color de fondo a la fila Y a la celda del nombre
                     const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
                     if (studentRow) {
-                        studentRow.style.backgroundColor = assignedColor;
+                        // studentRow.style.backgroundColor = assignedColor; // Ya no es necesario si solo coloreamos la celda del nombre
+                        studentRow.querySelector('td:first-child').style.backgroundColor = assignedColor;
                         
                         // Aplicar color al checkbox
                         const checkbox = studentRow.querySelector('.student-checkbox');
