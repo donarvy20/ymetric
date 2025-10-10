@@ -1056,21 +1056,28 @@
         document.getElementById('select-group').addEventListener('change', (e) => {
             document.getElementById('select-group').dataset.selectedId = e.target.value;
             const checklistId = document.getElementById('select-checklist').value;
+            
+            // Si el grupo y la lista están seleccionados, renderiza la tabla.
             if (e.target.value && checklistId) {
                 renderEvaluationTable(e.target.value, checklistId);
             } else {
+                // Si la selección está incompleta, limpia y muestra mensaje.
                 document.getElementById('evaluation-table-container').innerHTML = 
                     '<p class="text-center text-muted m-4">Selecciona un Grupo y una Lista de Cotejo para comenzar.</p>';
                 document.getElementById('evaluation-options').classList.add('d-none');
                 document.getElementById('evaluation-info-header').classList.add('d-none');
             }
         });
+
         document.getElementById('select-checklist').addEventListener('change', (e) => {
             document.getElementById('select-checklist').dataset.selectedId = e.target.value;
             const groupId = document.getElementById('select-group').value;
+            
+            // Si el grupo y la lista están seleccionados, renderiza la tabla.
             if (groupId && e.target.value) {
                 renderEvaluationTable(groupId, e.target.value);
             } else {
+                 // Si la selección está incompleta, limpia y muestra mensaje.
                  document.getElementById('evaluation-table-container').innerHTML = 
                     '<p class="text-center text-muted m-4">Selecciona un Grupo y una Lista de Cotejo para comenzar.</p>';
                 document.getElementById('evaluation-options').classList.add('d-none');
@@ -1102,8 +1109,16 @@
                 return;
             }
 
+            // --- Lógica de inicialización de evaluaciones ---
             if (!appData.evaluations[groupId]) appData.evaluations[groupId] = {};
-            if (!appData.evaluations[groupId][checklistId]) appData.evaluations[groupId][checklistId] = {};
+            
+            // IMPORTANTE: Asegurarse de que si la evaluación para esta lista no existe, se inicialice a un objeto vacío,
+            // y si el objeto existe pero está vacío, la tabla se renderiza sin datos previos (sin colores de grupo de otras listas).
+            if (!appData.evaluations[groupId][checklistId]) {
+                appData.evaluations[groupId][checklistId] = {};
+            }
+
+            const evaluationsForChecklist = appData.evaluations[groupId][checklistId];
             
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
             const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
@@ -1145,14 +1160,14 @@
             `;
 
             group.students.forEach(student => {
-                const studentEvals = appData.evaluations[groupId][checklistId][student.id] || 
-                                    new Array(checklist.criteria.length).fill(0);
+                const studentEvals = evaluationsForChecklist[student.id] || new Array(checklist.criteria.length).fill(0);
                 
+                // Asegurar que el array tenga la longitud correcta
                 if (studentEvals.length !== checklist.criteria.length) {
                     studentEvals.length = checklist.criteria.length;
                     studentEvals.fill(0, studentEvals.length);
                 }
-                appData.evaluations[groupId][checklistId][student.id] = studentEvals;
+                evaluationsForChecklist[student.id] = studentEvals;
 
 
                 const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
@@ -1165,13 +1180,15 @@
                 const checkIcon = isEvaluated ? '<i class="bi bi-check-circle-fill evaluated-check"></i>' : '';
 
                 // Determinar el color de fondo de la fila (si fue evaluado grupalmente)
-                const groupColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
+                // Usamos el color guardado en el modelo del estudiante, que se actualizó al evaluar GRUPALMENTE
+                const studentData = group.students.find(s => s.id === student.id);
+                const groupColor = studentData && studentData.groupEvalColor ? `style="background-color: ${studentData.groupEvalColor};"` : '';
                 
                 // Determinar la clase de color para el checkbox: Usa la clase guardada + la clase 'group-colored'
-                const checkColorClass = student.groupColorClass ? `${student.groupColorClass} group-colored` : '';
+                const checkColorClass = studentData && studentData.groupColorClass ? `${studentData.groupColorClass} group-colored` : '';
 
                 // Determinar el color de fondo para la celda del nombre
-                const nameCellColor = student.groupEvalColor ? `style="background-color: ${student.groupEvalColor};"` : '';
+                const nameCellColor = studentData && studentData.groupEvalColor ? `style="background-color: ${studentData.groupEvalColor};"` : '';
 
 
                 tableHtml += `
