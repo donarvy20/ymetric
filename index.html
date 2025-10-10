@@ -1112,14 +1112,30 @@
             // --- Lógica de inicialización de evaluaciones ---
             if (!appData.evaluations[groupId]) appData.evaluations[groupId] = {};
             
-            // IMPORTANTE: Asegurarse de que si la evaluación para esta lista no existe, se inicialice a un objeto vacío,
-            // y si el objeto existe pero está vacío, la tabla se renderiza sin datos previos (sin colores de grupo de otras listas).
+            // Si no hay evaluaciones para esta combinación, inicializa el objeto (IMPORTANTE)
             if (!appData.evaluations[groupId][checklistId]) {
                 appData.evaluations[groupId][checklistId] = {};
             }
 
             const evaluationsForChecklist = appData.evaluations[groupId][checklistId];
             
+            // ************ CORRECCIÓN CLAVE ************
+            // Si la evaluación para esta lista no tiene datos, forzar la limpieza de colores en el modelo del estudiante.
+            // Esto asegura que si cambias de "Lista A (evaluada con colores)" a "Lista B (nueva)",
+            // los nombres de los estudiantes se limpien en la nueva vista.
+            const hasEvaluations = Object.keys(evaluationsForChecklist).length > 0;
+            
+            group.students.forEach(student => {
+                // Si NO hay evaluaciones en el objeto evaluationsForChecklist (es decir, es una nueva lista)
+                // y el estudiante tiene colores asignados de otra lista, limpiarlos.
+                // NO DEBEMOS LIMPIAR SI LA LISTA TIENE EVALUACIONES GUARDADAS, solo si se carga una lista nueva/vacía.
+                if (!hasEvaluations && (student.groupEvalColor || student.groupColorClass)) {
+                     student.groupEvalColor = null;
+                     student.groupColorClass = null;
+                }
+            });
+            // ********************************************
+
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
             const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
 
