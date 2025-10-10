@@ -218,6 +218,11 @@
                             <i class="bi bi-file-earmark-pdf-fill me-1"></i> Reportes PDF
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#backup-module" data-module="backup">
+                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Backups
+                        </a>
+                    </li>
                     <!-- NUEVA OPCIÓN DEL MENÚ -->
                     <li class="nav-item">
                         <a class="nav-link text-muted" href="#" onclick="alert('Desarrollado por Yoan MS'); return false;">
@@ -380,6 +385,49 @@
             </div>
         </section>
 
+        <!-- Módulo de Backups -->
+        <section id="backup-module" class="module-section d-none">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h2 class="h4 mb-0"><i class="bi bi-cloud-arrow-up-fill me-2"></i>Configuración y Gestión de Backups</h2>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">Backup Manual</h5>
+                    <p class="text-muted">Crea una copia de seguridad instantánea de todos tus datos (Grupos, Listas y Evaluaciones).</p>
+                    <button id="manual-backup-btn" class="btn btn-primary btn-icon rounded-pill w-100 mb-4">
+                        <i class="bi bi-save-fill"></i> Realizar Backup Manual
+                    </button>
+                    
+                    <h5 class="mb-3">Backup Automático</h5>
+                    <p class="text-muted">Configura la frecuencia con la que Evalyms+ debe guardar automáticamente una copia de seguridad.</p>
+                    <form id="scheduled-backup-form">
+                        <div class="mb-3">
+                            <label for="backup-frequency" class="form-label">Frecuencia de Backup</label>
+                            <select id="backup-frequency" class="form-select rounded-lg">
+                                <option value="none">Desactivado</option>
+                                <option value="24h">Cada 24 horas</option>
+                                <option value="3d">Cada 3 días</option>
+                                <option value="5d">Cada 5 días</option>
+                                <option value="30d">Cada Mes (30 días)</option>
+                            </select>
+                        </div>
+                        <p id="last-backup-info" class="text-secondary small mt-3">Último backup: N/A</p>
+
+                        <button type="submit" class="btn btn-success btn-icon rounded-pill w-100">
+                            <i class="bi bi-clock-fill"></i> Guardar Configuración
+                        </button>
+                    </form>
+
+                    <h5 class="mt-4 mb-3">Restauración de Backups</h5>
+                    <p class="text-muted">Selecciona un backup para restaurar los datos (reemplazará los datos actuales).</p>
+                    <div id="backup-list-container">
+                        <!-- Aquí se listarán los backups disponibles -->
+                        <p class="text-muted small">No hay backups disponibles.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
     
     <!-- Modal para Gestión de Grupo de Estudiantes (Crear/Modificar) -->
@@ -495,19 +543,26 @@
             teacher: '',
             studentGroups: [],
             checklists: [],
-            evaluations: {} 
+            evaluations: {},
+            backupConfig: {
+                frequency: 'none',
+                lastRun: 0 // Timestamp
+            }
         };
 
         const LOCAL_STORAGE_KEY = 'evalymsPlusData';
+        const BACKUP_STORAGE_KEY = 'evalymsPlusBackups';
 
         function loadData() {
             const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (storedData) {
                 try {
-                    appData = JSON.parse(storedData);
+                    const parsedData = JSON.parse(storedData);
+                    appData = { ...appData, ...parsedData };
                     if (!appData.studentGroups) appData.studentGroups = [];
                     if (!appData.checklists) appData.checklists = [];
                     if (!appData.evaluations) appData.evaluations = {};
+                    if (!appData.backupConfig) appData.backupConfig = { frequency: 'none', lastRun: 0 };
                 } catch (e) {
                     console.error('Error al parsear datos de Local Storage:', e);
                 }
@@ -568,6 +623,7 @@
             if (moduleId === 'checklist-module') renderChecklists();
             if (moduleId === 'evaluation-module') renderEvaluationModuleSelectors();
             if (moduleId === 'reports-module') renderReportSelectors();
+            if (moduleId === 'backup-module') renderBackupModule(); // Nuevo módulo
 
             // Cierra el menú al cambiar de módulo (especialmente útil en móviles)
             closeNavbar();
@@ -700,7 +756,7 @@
         }
 
         // **********************************************
-        // MÓDULO DE LISTA DE COTEJO (Mantienen intactas)
+        // MÓDULO DE LISTA DE COTEJO
         // **********************************************
         
         const defaultLevels = [
@@ -823,6 +879,23 @@
             modal.hide();
         });
 
+        // NUEVA FUNCIÓN: Duplicar Lista de Cotejo
+        function duplicateChecklist(checklistId) {
+            const checklist = appData.checklists.find(c => c.id === checklistId);
+            if (checklist && confirm(`¿Estás seguro de que deseas duplicar la lista "${checklist.name}"?`)) {
+                // Crear copia profunda y asignar nuevo ID/nombre
+                const newChecklist = JSON.parse(JSON.stringify(checklist));
+                newChecklist.id = generateId();
+                newChecklist.name = `(Copia) ${checklist.name}`;
+                
+                appData.checklists.push(newChecklist);
+                saveData();
+                renderChecklists();
+                showToast('Lista de Cotejo duplicada exitosamente.', 'info');
+            }
+        }
+
+
         function renderChecklists() {
             const listContainer = document.getElementById('checklists-list');
             listContainer.innerHTML = '';
@@ -843,6 +916,9 @@
                         <p class="mb-1 text-muted">Criterios: ${criteriaCount} | Niveles: ${levelsText}</p>
                     </div>
                     <div>
+                        <button class="btn btn-sm btn-outline-secondary btn-icon me-2 rounded-pill duplicate-checklist" data-id="${checklist.id}">
+                            <i class="bi bi-copy"></i> Duplicar
+                        </button>
                         <button class="btn btn-sm btn-outline-primary btn-icon me-2 rounded-pill edit-checklist" data-id="${checklist.id}" data-bs-toggle="modal" data-bs-target="#checklistModal">
                             <i class="bi bi-pencil-fill"></i> Modificar
                         </button>
@@ -859,6 +935,9 @@
             });
             document.querySelectorAll('.delete-checklist').forEach(btn => {
                 btn.addEventListener('click', (e) => deleteChecklist(e.currentTarget.dataset.id));
+            });
+            document.querySelectorAll('.duplicate-checklist').forEach(btn => {
+                btn.addEventListener('click', (e) => duplicateChecklist(e.currentTarget.dataset.id));
             });
         }
 
@@ -1895,18 +1974,184 @@
         }
 
         // **********************************************
+        // MÓDULO DE BACKUPS (NUEVO)
+        // **********************************************
+        
+        function getBackups() {
+            const stored = localStorage.getItem(BACKUP_STORAGE_KEY);
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        function setBackups(backups) {
+            localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(backups));
+        }
+
+        function renderBackupModule() {
+            document.getElementById('backup-frequency').value = appData.backupConfig.frequency;
+            
+            const lastRunInfo = document.getElementById('last-backup-info');
+            if (appData.backupConfig.lastRun) {
+                const date = new Date(appData.backupConfig.lastRun);
+                lastRunInfo.textContent = `Último backup: ${date.toLocaleString()}`;
+            } else {
+                lastRunInfo.textContent = 'Último backup: N/A';
+            }
+
+            const backupListContainer = document.getElementById('backup-list-container');
+            const backups = getBackups();
+            backupListContainer.innerHTML = '';
+
+            if (backups.length === 0) {
+                backupListContainer.innerHTML = '<p class="text-muted small">No hay backups disponibles.</p>';
+                return;
+            }
+
+            backups.sort((a, b) => b.timestamp - a.timestamp); // Mostrar el más reciente primero
+
+            backups.forEach(backup => {
+                const date = new Date(backup.timestamp);
+                const item = document.createElement('div');
+                item.className = 'd-flex justify-content-between align-items-center p-2 mb-2 bg-white border rounded';
+                item.innerHTML = `
+                    <span class="small">Backup: ${date.toLocaleString()} (${backup.type})</span>
+                    <div>
+                        <button class="btn btn-sm btn-success btn-icon me-2 rounded-pill restore-backup-btn" data-timestamp="${backup.timestamp}">
+                            <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger btn-icon rounded-pill delete-backup-btn" data-timestamp="${backup.timestamp}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                `;
+                backupListContainer.appendChild(item);
+            });
+
+            document.querySelectorAll('.restore-backup-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => restoreBackup(parseInt(e.currentTarget.dataset.timestamp)));
+            });
+            document.querySelectorAll('.delete-backup-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => deleteBackup(parseInt(e.currentTarget.dataset.timestamp)));
+            });
+        }
+        
+        // Función principal para crear un backup
+        function createBackup(type = 'Manual') {
+            const currentData = {
+                institution: appData.institution,
+                teacher: appData.teacher,
+                studentGroups: appData.studentGroups,
+                checklists: appData.checklists,
+                evaluations: appData.evaluations,
+            };
+            
+            const backups = getBackups();
+            backups.push({
+                timestamp: Date.now(),
+                type: type,
+                data: currentData
+            });
+            setBackups(backups);
+            
+            if (type !== 'Manual') {
+                appData.backupConfig.lastRun = Date.now();
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
+            }
+            
+            showToast(`Backup (${type}) realizado con éxito.`, 'dark');
+            renderBackupModule();
+        }
+
+        // Listener para el backup manual
+        document.getElementById('manual-backup-btn').addEventListener('click', () => {
+            createBackup('Manual');
+        });
+
+        // Listener para la configuración del backup automático
+        document.getElementById('scheduled-backup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            appData.backupConfig.frequency = document.getElementById('backup-frequency').value;
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
+            showToast('Configuración de backup guardada.', 'success');
+            renderBackupModule();
+        });
+        
+        // Funciones de restauración y eliminación
+        function restoreBackup(timestamp) {
+            if (!confirm('ADVERTENCIA: ¿Estás seguro de que deseas RESTAURAR este backup? Los datos actuales serán REEMPLAZADOS.')) {
+                return;
+            }
+            const backups = getBackups();
+            const backup = backups.find(b => b.timestamp === timestamp);
+            if (backup) {
+                // Restaurar solo las secciones de datos, manteniendo la configuración de backup
+                appData.institution = backup.data.institution;
+                appData.teacher = backup.data.teacher;
+                appData.studentGroups = backup.data.studentGroups;
+                appData.checklists = backup.data.checklists;
+                appData.evaluations = backup.data.evaluations;
+
+                // Forzar un guardado completo de appData al Local Storage principal
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
+                
+                showToast('Datos restaurados exitosamente desde el backup.', 'warning');
+                // Recargar el módulo actual para reflejar los cambios
+                const activeModuleId = document.querySelector('.module-section:not(.d-none)').id;
+                showModule(activeModuleId); 
+            }
+        }
+        
+        function deleteBackup(timestamp) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este backup? Esta acción es irreversible.')) {
+                return;
+            }
+            let backups = getBackups();
+            backups = backups.filter(b => b.timestamp !== timestamp);
+            setBackups(backups);
+            showToast('Backup eliminado.', 'danger');
+            renderBackupModule();
+        }
+        
+        // Lógica de programación de backups automáticos
+        function checkAndRunScheduledBackup() {
+            const config = appData.backupConfig;
+            if (config.frequency === 'none') return;
+
+            const now = Date.now();
+            const lastRun = config.lastRun || 0;
+            let intervalMs = 0;
+
+            switch (config.frequency) {
+                case '24h': intervalMs = 24 * 60 * 60 * 1000; break;
+                case '3d': intervalMs = 3 * 24 * 60 * 60 * 1000; break;
+                case '5d': intervalMs = 5 * 24 * 60 * 60 * 1000; break;
+                case '30d': intervalMs = 30 * 24 * 60 * 60 * 1000; break;
+                default: return;
+            }
+
+            if (now - lastRun >= intervalMs) {
+                createBackup('Automático');
+            }
+        }
+        // **********************************************
+        // FIN MÓDULO DE BACKUPS
+        // **********************************************
+
+
+        // **********************************************
         // INICIALIZACIÓN
         // **********************************************
 
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             renderBasicData();
+            checkAndRunScheduledBackup(); // Revisa si debe hacer un backup al cargar
 
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     // Ejecuta la lógica del módulo
-                    const moduleId = e.currentTarget.dataset.module + '-module';
+                    const moduleName = e.currentTarget.dataset.module;
+                    const moduleId = moduleName + '-module';
                     showModule(moduleId);
                     
                     // Asegúrate de que el menú colapse después del clic
