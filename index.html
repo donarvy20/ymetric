@@ -893,29 +893,28 @@
             '#f0f4c3', // 6: Lima suave
         ];
         
-        // Función para obtener el siguiente color y asignarlo al grupo
+        // Función para obtener el siguiente color y asignarlo al grupo (CORREGIDA)
         function getNextGroupColor(groupId) {
-            let group = appData.studentGroups.find(g => g.id === groupId);
-            
-            // Si el grupo no tiene un índice de color asignado o si es 0 (default/gris), asignamos el siguiente
-            if (group.colorIndex === undefined || group.colorIndex === 0) {
-                // Encontramos el índice más alto usado actualmente en todos los grupos y aumentamos en 1
-                let maxIndex = 0;
-                appData.studentGroups.forEach(g => {
-                    if (g.colorIndex > maxIndex) {
-                        maxIndex = g.colorIndex;
+            // Encontramos el índice más alto usado actualmente en CUALQUIER estudiante de CUALQUIER grupo
+            let maxIndex = 0;
+            appData.studentGroups.forEach(group => {
+                group.students.forEach(student => {
+                    if (student.groupColorClass) {
+                        const match = student.groupColorClass.match(/group-color-(\d+)/);
+                        if (match) {
+                            maxIndex = Math.max(maxIndex, parseInt(match[1], 10));
+                        }
                     }
                 });
-                
-                // Calculamos el nuevo índice (cíclico, saltando el índice 0)
-                const newIndex = (maxIndex % (GROUP_COLORS.length - 1)) + 1;
-                
-                group.colorIndex = newIndex;
-            }
+            });
             
+            // Calculamos el nuevo índice (cíclico, saltando el índice 0)
+            const newIndex = (maxIndex % (GROUP_COLORS.length - 1)) + 1;
+            
+            // NO se guarda en el objeto group, solo se genera el color y clase.
             return {
-                hex: GROUP_COLORS[group.colorIndex],
-                class: `group-color-${group.colorIndex}`
+                hex: GROUP_COLORS[newIndex],
+                class: `group-color-${newIndex}`
             };
         }
         
@@ -928,15 +927,6 @@
                  studentData.groupColorClass = null;
             }
         }
-        
-        // Función para obtener la clase de color para el checkbox
-        // Esta función ya no es necesaria y será eliminada en favor de usar student.groupColorClass directamente.
-        // function getGroupColorClass(groupEvalColor) {
-        //     if (!groupEvalColor) return '';
-            
-        //     const index = GROUP_COLORS.indexOf(groupEvalColor);
-        //     return index > 0 ? `group-color-${index} group-colored` : '';
-        // }
         
         // Función auxiliar para actualizar el icono de evaluación individual
         function updateEvaluationCheckIcon(studentId, row) {
@@ -1368,7 +1358,7 @@
             const selectedStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked'))
                 .map(cb => cb.dataset.studentId);
 
-            // 2. Asignar un color único al grupo seleccionado
+            // 2. Asignar un color único al grupo seleccionado (Llama a la CORRECCIÓN)
             const colorData = getNextGroupColor(groupId);
             const assignedColor = colorData.hex;
             const assignedClass = colorData.class;
