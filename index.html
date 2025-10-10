@@ -348,7 +348,7 @@
         <!-- Módulo de Reportes PDF -->
         <section id="reports-module" class="module-section d-none">
             <div class="card">
-                <div class="card-header bg-danger text-white">
+                <div class="card-header bg-info text-white">
                     <h2 class="h4 mb-0"><i class="bi bi-file-earmark-pdf-fill me-2"></i>Generación de Reportes PDF</h2>
                 </div>
                 <div class="card-body">
@@ -367,10 +367,10 @@
 
                     <h5 class="mt-4">Opciones de Reporte</h5>
                     <div class="d-grid gap-2 d-md-block">
-                        <button id="generate-detailed-report" class="btn btn-outline-danger btn-icon rounded-pill mt-2" disabled>
+                        <button id="generate-detailed-report" class="btn btn-info btn-icon rounded-pill mt-2">
                             <i class="bi bi-file-earmark-bar-graph-fill"></i> Reporte Detallado por Estudiante
                         </button>
-                        <button id="generate-summary-report" class="btn btn-outline-secondary btn-icon rounded-pill mt-2" disabled>
+                        <button id="generate-summary-report" class="btn btn-outline-info btn-icon rounded-pill mt-2">
                             <i class="bi bi-file-earmark-text-fill"></i> Reporte Resumen General
                         </button>
                     </div>
@@ -1133,16 +1133,17 @@
             
             // ************ CORRECCIÓN CLAVE ************
             // Limpieza de colores en el modelo del estudiante si la nueva lista no tiene evaluaciones guardadas.
-            const hasEvaluations = Object.keys(evaluationsForChecklist).length > 0;
+            const hasEvaluations = Object.keys(evaluationsForChecklist).length > 0 && 
+                                   Object.values(evaluationsForChecklist).some(arr => arr.some(score => score > 0)); 
             
-            group.students.forEach(student => {
-                // Si la lista que se carga NO tiene evaluaciones guardadas (hasEvaluations es false),
-                // y el estudiante tiene colores asignados de otra lista, limpiarlos.
-                if (!hasEvaluations && (student.groupEvalColor || student.groupColorClass)) {
+            // Si NO hay evaluaciones válidas para esta combinación (lista/grupo), forzamos la limpieza
+            if (!hasEvaluations) {
+                group.students.forEach(student => {
                      student.groupEvalColor = null;
                      student.groupColorClass = null;
-                }
-            });
+                });
+                saveData(); // Guardar el estado limpio de los estudiantes
+            }
             // ********************************************
 
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
