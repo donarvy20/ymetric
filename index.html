@@ -165,7 +165,6 @@
         }
         
         /* --- NUEVO ESTILO: Colores de fondo del Checkbox (Usando los colores de GROUP_COLORS) --- */
-        /* Nota: Estos estilos CSS son genéricos. Los colores exactos se aplican inline o a través de JS para mayor control. */
         /* La clase `group-colored:checked` asegura que el checkmark se vea correctamente. */
         .form-check-input.group-colored:checked {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 5-5'/%3e%3csvg%3e");
@@ -1212,15 +1211,24 @@
                 const studentData = group.students.find(s => s.id === student.id);
                 
                 // Aplicamos el color grupal si está definido en el estudiante (solo se define después de eval. grupal)
-                const groupColor = studentData && studentData.groupEvalColor ? studentData.groupEvalColor : '';
+                // ************ NUEVA LÓGICA DE COLOR CONDICIONAL ************
+                let groupColor = '';
+                let checkStyle = '';
+                let checkClass = '';
+
+                // Solo aplicamos el color de grupo si:
+                // 1. El estudiante tiene un color global asignado (groupEvalColor).
+                // 2. Y el estudiante tiene un puntaje total > 0 para la LISTA DE COTEJO actual.
+                if (studentData && studentData.groupEvalColor && isEvaluated) {
+                    groupColor = studentData.groupEvalColor;
+                    checkStyle = `style="background-color: ${groupColor}; border-color: ${groupColor};"`;
+                    checkClass = 'group-colored';
+                }
                 
                 // Determinar el color de fondo para la celda del nombre
                 const nameCellColorStyle = groupColor ? `style="background-color: ${groupColor};"` : '';
 
-                // Determinar el estilo inline para el checkbox
-                const checkStyle = groupColor ? `style="background-color: ${groupColor}; border-color: ${groupColor};"` : '';
-
-                const checkClass = groupColor ? 'group-colored' : ''; // Para asegurar el checkmark oscuro
+                // ************************************************************
 
 
                 tableHtml += `
@@ -1354,6 +1362,8 @@
                 }
 
                 // Limpiar color en el modelo del estudiante
+                // Nota: Aunque no se borre aquí, la lógica de renderizado ya no lo mostrará si el score es cero.
+                // Sin embargo, para mantener el estado limpio, lo mantenemos.
                 studentData.groupEvalColor = null;
                 studentData.groupColorClass = null; // También limpia la clase en el modelo
             }
