@@ -966,45 +966,41 @@
             '#00FA9A', '#008080'
         ];
         
-        // Función para obtener el siguiente color y asignarlo al grupo (ACTUALIZADA)
-        function getNextGroupColor(groupId) {
-            const group = appData.studentGroups.find(g => g.id === groupId);
+        // Función para obtener el siguiente color y asignarlo al grupo (ACTUALIZADA para rotar en cada evaluación)
+        function getNextGroupColor() {
+            // 1. Obtener todos los colores actualmente asignados a evaluaciones grupales de CUALQUIER estudiante
+            let usedColors = new Set();
+            appData.studentGroups.forEach(group => {
+                group.students.forEach(student => {
+                    if (student.groupEvalColor) {
+                        usedColors.add(student.groupEvalColor);
+                    }
+                });
+            });
 
-            // 1. Si el grupo ya tiene un color, lo devuelve (NO DEBE RECALCULARSE)
-            if (group.colorCode) {
-                return {
-                    hex: group.colorCode,
-                    class: group.colorClass 
-                };
-            }
+            // 2. Encontrar el primer color que NO esté en uso
+            const availableColors = GROUP_COLORS_HEX.filter(color => !usedColors.has(color));
+            
+            let newColorHex;
 
-            // 2. Si no tiene color, encuentra qué colores ya están en uso por otros grupos
-            const usedColors = appData.studentGroups
-                .filter(g => g.id !== groupId && g.colorCode)
-                .map(g => g.colorCode);
-            
-            // 3. Encuentra el primer color disponible
-            const availableColors = GROUP_COLORS_HEX.filter(color => !usedColors.includes(color));
-            
-            let newColorHex = GROUP_COLORS_HEX[0]; // Color por defecto si no hay disponibles
-            
             if (availableColors.length > 0) {
-                // Toma el primer color disponible de la lista (esto asegura rotación y no repetición)
+                // Tomamos un color disponible (el primero para consistencia)
                 newColorHex = availableColors[0];
             } else {
-                // Si todos los colores están usados (un caso raro), simplemente rota cíclicamente
-                // Aquí, para mantener la no-repetición global, tomamos el siguiente de la lista
-                // que quizás ya esté en uso, pero esto solo pasa si hay más de 20 grupos.
-                const nextIndex = appData.studentGroups.length % GROUP_COLORS_HEX.length;
+                // Si todos los colores están en uso, reiniciamos la rotación
+                // Buscamos cuál es el color más antiguo usado (basado en el índice de la paleta)
+                // y usamos el siguiente en la paleta. Para simplicidad, podemos usar el siguiente cíclicamente.
+                
+                // Si todos los colores están ocupados, tomamos el siguiente cíclicamente de la paleta
+                const lastColorIndex = GROUP_COLORS_HEX.findIndex(color => usedColors.has(color))
+                const nextIndex = (lastColorIndex + 1) % GROUP_COLORS_HEX.length;
                 newColorHex = GROUP_COLORS_HEX[nextIndex];
+                
+                // Nota: La robustez del "más antiguo" requeriría una marca de tiempo por color,
+                // pero esta solución simple asegura que se usen todos los colores de la paleta.
             }
 
-            // 4. Asigna el color al grupo en el modelo (colorCode para HEX, colorClass para aplicar en HTML)
-            const colorClass = `group-color-${newColorHex.replace('#', '')}`; // Clase única basada en HEX
-            
-            group.colorCode = newColorHex;
-            group.colorClass = colorClass;
-            // Se debe llamar a saveData() después de esto para persistir el color del grupo.
+            const colorClass = `group-color-${newColorHex.replace('#', '')}`;
             
             return {
                 hex: newColorHex,
@@ -1017,7 +1013,7 @@
             const group = appData.studentGroups.find(g => g.id === groupId);
             const studentData = group.students.find(s => s.id === studentId);
             if (studentData) {
-                 // ** Se limpia el color de evaluación grupal del estudiante, pero se mantiene el color fijo del grupo. **
+                 // ** Se limpia el color de evaluación grupal del estudiante. **
                  studentData.groupEvalColor = null;
                  studentData.groupColorClass = null;
             }
@@ -1488,10 +1484,9 @@
             const selectedStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked'))
                 .map(cb => cb.dataset.studentId);
 
-            // 2. Obtener/Asignar el color fijo del grupo (ACTUALIZADO)
-            const colorData = getNextGroupColor(groupId);
-            const assignedColor = colorData.hex; // Color fijo del grupo
-            const assignedClass = colorData.class; // Clase fija del grupo
+            // 2. Obtener el siguiente color disponible (ACTUALIZADO: NO guarda en el grupo, solo lo obtiene)
+            const colorData = getNextGroupColor(); // Llama a la función sin ID de grupo
+            const assignedColor = colorData.hex; // Color que no se ha usado
             
             // 3. Seleccionar todos los contenedores de criterio
             const criterionGroups = document.querySelectorAll('#group-evaluation-matrix-container .criterion-group');
@@ -1520,7 +1515,7 @@
                     const studentData = groupData.students.find(s => s.id === studentId);
                     if (studentData) {
                         studentData.groupEvalColor = assignedColor; // Código HEX
-                        studentData.groupColorClass = assignedClass; // Clase con HEX
+                        studentData.groupColorClass = assignedColor.replace('#', ''); // Almacena el HEX sin # como clase (se usa en render)
                     }
                     
                     // Actualizar la vista de la tabla principal (botón y resultados)
