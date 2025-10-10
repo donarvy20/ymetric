@@ -1139,8 +1139,11 @@
             // Si NO hay evaluaciones válidas para esta combinación (lista/grupo), forzamos la limpieza
             if (!hasEvaluations) {
                 group.students.forEach(student => {
-                     student.groupEvalColor = null;
-                     student.groupColorClass = null;
+                    // Solo limpiamos si tiene color asignado. Si no tiene color y la lista está vacía, no hace nada.
+                    if (student.groupEvalColor || student.groupColorClass) { 
+                        student.groupEvalColor = null;
+                        student.groupColorClass = null;
+                    }
                 });
                 saveData(); // Guardar el estado limpio de los estudiantes
             }
