@@ -559,6 +559,24 @@
                     if (!appData.checklists) appData.checklists = [];
                     if (!appData.evaluations) appData.evaluations = {};
                     if (!appData.backupConfig) appData.backupConfig = { frequency: 'none', lastRun: 0 };
+                    
+                    // Inicializar groupEvalColors si no existe (para la nueva estructura)
+                    appData.studentGroups.forEach(group => {
+                        group.students.forEach(student => {
+                            if (!student.groupEvalColors) {
+                                // Transferir el color antiguo si existe, si no, inicializar
+                                student.groupEvalColors = {};
+                                if (student.groupEvalColor && student.groupColorClass) {
+                                    // NOTA: No podemos saber a qué checklist pertenecía el color global, 
+                                    // pero lo limpiaremos en la siguiente evaluación grupal/individual.
+                                    // Por ahora, simplemente eliminamos las propiedades globales obsoletas
+                                    delete student.groupEvalColor;
+                                    delete student.groupColorClass;
+                                }
+                            }
+                        });
+                    });
+
                 } catch (e) {
                     console.error('Error al parsear datos de Local Storage:', e);
                 }
@@ -718,7 +736,9 @@
                 const existingStudent = existingGroup ? existingGroup.students.find(s => s.name === name) : null;
                 newStudents.push({
                     id: existingStudent ? existingStudent.id : generateId(),
-                    name: name
+                    name: name,
+                    // Asegurar que la nueva propiedad existe
+                    groupEvalColors: existingStudent?.groupEvalColors || {}
                 });
             });
 
@@ -969,10 +989,15 @@
         function getNextGroupColor() {
             // 1. Obtener todos los colores actualmente asignados a evaluaciones grupales de CUALQUIER estudiante
             let usedColors = new Set();
+            
+            // Recorrer todos los estudiantes de todos los grupos
             appData.studentGroups.forEach(group => {
                 group.students.forEach(student => {
-                    if (student.groupEvalColor) {
-                        usedColors.add(student.groupEvalColor);
+                    // Recorrer todos los colores asignados en groupEvalColors (por checklist)
+                    if (student.groupEvalColors) {
+                        Object.values(student.groupEvalColors).forEach(color => {
+                            usedColors.add(color);
+                        });
                     }
                 });
             });
@@ -986,17 +1011,10 @@
                 // Tomamos un color disponible (el primero para consistencia)
                 newColorHex = availableColors[0];
             } else {
-                // Si todos los colores están en uso, reiniciamos la rotación
-                // Buscamos cuál es el color más antiguo usado (basado en el índice de la paleta)
-                // y usamos el siguiente en la paleta. Para simplicidad, podemos usar el siguiente cíclicamente.
-                
-                // Si todos los colores están ocupados, tomamos el siguiente cíclicamente de la paleta
+                // Si todos los colores están en uso, tomamos el siguiente cíclicamente de la paleta
                 const lastColorIndex = GROUP_COLORS_HEX.findIndex(color => usedColors.has(color))
                 const nextIndex = (lastColorIndex + 1) % GROUP_COLORS_HEX.length;
                 newColorHex = GROUP_COLORS_HEX[nextIndex];
-                
-                // Nota: La robustez del "más antiguo" requeriría una marca de tiempo por color,
-                // pero esta solución simple asegura que se usen todos los colores de la paleta.
             }
 
             const colorClass = `group-color-${newColorHex.replace('#', '')}`;
@@ -1007,15 +1025,10 @@
             };
         }
         
-        // Función para limpiar el color de grupo de un estudiante individual (ACTUALIZADA)
+        // Función para limpiar el color de grupo de un estudiante individual (OBSOLETA, se maneja por render)
         function clearGroupColor(groupId, studentId) {
-            const group = appData.studentGroups.find(g => g.id === groupId);
-            const studentData = group.students.find(s => s.id === studentId);
-            if (studentData) {
-                 // ** Se limpia el color de evaluación grupal del estudiante. **
-                 studentData.groupEvalColor = null;
-                 studentData.groupColorClass = null;
-            }
+            // Esta función ya no es necesaria en este enfoque, ya que la limpieza se hace en la renderización
+            // al no encontrar un score > 0, o al sobrescribir en setScoreFromCell
         }
         
         // Función auxiliar para actualizar el icono de evaluación individual
@@ -1023,7 +1036,7 @@
             const groupId = document.getElementById('select-group').value;
             const checklistId = document.getElementById('select-checklist').value;
 
-            const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
+            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
             const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
             
             const label = row.querySelector('.form-check-label');
@@ -1130,23 +1143,10 @@
 
             const evaluationsForChecklist = appData.evaluations[groupId][checklistId];
             
-            // ************ CORRECCIÓN CLAVE ************
-            // Limpieza de colores en el modelo del estudiante si la nueva lista no tiene evaluaciones guardadas.
-            const hasEvaluations = Object.keys(evaluationsForChecklist).length > 0 && 
-                                   Object.values(evaluationsForChecklist).some(arr => arr.some(score => score > 0)); 
-            
-            // Si NO hay evaluaciones válidas para esta combinación (lista/grupo), forzamos la limpieza
-            if (!hasEvaluations) {
-                group.students.forEach(student => {
-                    // Solo limpiamos si tiene color asignado. Si no tiene color y la lista está vacía, no hace nada.
-                    if (student.groupEvalColor || student.groupColorClass) { 
-                        student.groupEvalColor = null;
-                        student.groupColorClass = null;
-                    }
-                });
-                saveData(); // Guardar el estado limpio de los estudiantes
-            }
-            // ********************************************
+            // ************ LIMPIEZA DE COLORES: NO ES NECESARIA PORQUE EL RENDERIZADO ES CONDICIONAL ************
+            // La limpieza se maneja en el paso 4 y 5 de la iteración de estudiantes (más abajo)
+            // Ya no se limpia el modelo globalmente si no hay evaluaciones, solo se comprueba el score.
+            // ************************************************************
 
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
             const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
@@ -1203,29 +1203,28 @@
                 const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
                 const performance = getPerformanceLevel(average);
                 
-                // Determinar si el alumno fue evaluado (al menos un score > 0)
+                // 1. Determinar si el alumno fue evaluado (al menos un score > 0)
                 const isEvaluated = totalScore > 0;
                 const checkIcon = isEvaluated ? '<i class="bi bi-check-circle-fill evaluated-check"></i>' : '';
 
-                // Determinar el color de fondo de la fila (si fue evaluado grupalmente)
+                // 2. Obtener el color de evaluación grupal (condicional a la lista actual)
                 const studentData = group.students.find(s => s.id === student.id);
                 
-                // Aplicamos el color grupal si está definido en el estudiante (solo se define después de eval. grupal)
-                // ************ NUEVA LÓGICA DE COLOR CONDICIONAL ************
                 let groupColor = '';
                 let checkStyle = '';
                 let checkClass = '';
-
-                // Solo aplicamos el color de grupo si:
-                // 1. El estudiante tiene un color global asignado (groupEvalColor).
-                // 2. Y el estudiante tiene un puntaje total > 0 para la LISTA DE COTEJO actual.
-                if (studentData && studentData.groupEvalColor && isEvaluated) {
-                    groupColor = studentData.groupEvalColor;
+                
+                // El color de grupo se lee del mapa, CONDICIONAL a que el estudiante tenga evaluaciones > 0 en la lista actual
+                const colorMap = studentData?.groupEvalColors || {};
+                const studentGroupColor = colorMap[checklistId];
+                
+                if (studentGroupColor && isEvaluated) {
+                    groupColor = studentGroupColor;
                     checkStyle = `style="background-color: ${groupColor}; border-color: ${groupColor};"`;
                     checkClass = 'group-colored';
                 }
                 
-                // Determinar el color de fondo para la celda del nombre
+                // 3. Determinar el color de fondo para la celda del nombre (inline style)
                 const nameCellColorStyle = groupColor ? `style="background-color: ${groupColor};"` : '';
 
                 // ************************************************************
@@ -1293,7 +1292,7 @@
             const groupId = document.getElementById('select-group').value;
             const checklistId = document.getElementById('select-checklist').value;
 
-            const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
+            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
             const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
             
             const label = row.querySelector('.form-check-label');
@@ -1308,7 +1307,7 @@
 
 
         function updateStudentResults(studentId, groupId, checklistId) {
-            const studentEvals = appData.evaluations[groupId][checklistId][studentId] || [];
+            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
             const criteriaCount = studentEvals.length;
             
             const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
@@ -1326,6 +1325,32 @@
                 
                 // Actualizar el icono de check de evaluación individual
                 updateEvaluationCheckIcon(studentId, row);
+                
+                // ************ LÓGICA DE ACTUALIZACIÓN DE COLOR INDIVIDUAL ************
+                const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+                const isEvaluated = totalScore > 0;
+                
+                if (studentData) {
+                    const groupColor = studentData.groupEvalColors[checklistId];
+                    const nameCell = row.querySelector('td:first-child');
+                    const checkbox = row.querySelector('.student-checkbox');
+                    
+                    if (!isEvaluated) {
+                        // Si el puntaje se limpió a 0, limpiamos el color de la celda de nombre y el checkbox.
+                        nameCell.style.backgroundColor = '';
+                        checkbox.removeAttribute('style');
+                        checkbox.classList.remove('group-colored');
+                        // No eliminamos el color del modelo, solo dejamos de mostrarlo.
+                    } else if (groupColor) {
+                        // Si está evaluado y tiene un color de grupo asignado, lo aplicamos (esto es para asegurar que si se evalúa
+                        // individualmente un estudiante previamente grupal, se mantiene el color si se cambia el score pero no se borra la evaluación).
+                        nameCell.style.backgroundColor = groupColor;
+                        checkbox.style.backgroundColor = groupColor;
+                        checkbox.style.borderColor = groupColor;
+                        checkbox.classList.add('group-colored');
+                    }
+                }
+                // *******************************************************************
             }
         }
 
@@ -1351,25 +1376,23 @@
             const studentData = appData.studentGroups.find(g => g.id === groupId).students.find(s => s.id === studentId);
             
             if (studentRow && studentData) {
-                // Limpiar el color de fondo de la celda del nombre (inline style)
-                studentRow.querySelector('td:first-child').style.backgroundColor = '';
-                
-                // Limpiar el color del checkbox (inline style)
-                const checkbox = studentRow.querySelector('.student-checkbox');
-                if (checkbox) {
-                    checkbox.removeAttribute('style');
-                    checkbox.classList.remove('group-colored');
+                // Lógica de limpieza: Cuando se evalúa individualmente, rompemos el vínculo visual de la evaluación grupal
+                // (excepto si el puntaje total sigue siendo > 0 y ya tenía un color asignado, lo cual se maneja en updateStudentResults)
+                if (score === 0) {
+                    // Si el puntaje es 0, limpiamos inmediatamente los estilos para la celda del nombre/checkbox
+                    studentRow.querySelector('td:first-child').style.backgroundColor = '';
+                    const checkbox = studentRow.querySelector('.student-checkbox');
+                    if (checkbox) {
+                        checkbox.removeAttribute('style');
+                        checkbox.classList.remove('group-colored');
+                    }
+                    // Si se limpia el score, eliminamos el color del mapa de groupEvalColors para esta checklist
+                    delete studentData.groupEvalColors[checklistId];
                 }
-
-                // Limpiar color en el modelo del estudiante
-                // Nota: Aunque no se borre aquí, la lógica de renderizado ya no lo mostrará si el score es cero.
-                // Sin embargo, para mantener el estado limpio, lo mantenemos.
-                studentData.groupEvalColor = null;
-                studentData.groupColorClass = null; // También limpia la clase en el modelo
             }
 
 
-            // 4. Update student results and save data
+            // 4. Update student results and save data (Esto también actualizará el color condicionalmente si totalScore > 0)
             updateStudentResults(studentId, groupId, checklistId);
             saveData();
         }
@@ -1452,7 +1475,7 @@
                 // Esto es solo para pre-seleccionar un valor en la vista
                 const groupId = document.getElementById('select-group').value;
                 const scores = selectedStudentIds
-                    .map(sId => appData.evaluations[groupId][checklistId][sId]?.[criterionIndex] || 0)
+                    .map(sId => appData.evaluations[groupId]?.[checklistId]?.[sId]?.[criterionIndex] || 0)
                     .filter(score => score > 0);
                 
                 const initialScore = scores.length > 0 ? scores[0] : 0; // Solo tomamos el primer score si existe, para la vista
@@ -1525,11 +1548,10 @@
                     }
                     appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
                     
-                    // Asignar el color al estudiante individual (para el resaltado de esta evaluación)
+                    // 5. Asignar el color al estudiante individual para ESTA LISTA DE COTEJO
                     const studentData = groupData.students.find(s => s.id === studentId);
                     if (studentData) {
-                        studentData.groupEvalColor = assignedColor; // Código HEX
-                        studentData.groupColorClass = assignedColor.replace('#', ''); // Almacena el HEX sin # como clase (se usa en render)
+                        studentData.groupEvalColors[checklistId] = assignedColor; // Guarda el color en el mapa
                     }
                     
                     // Actualizar la vista de la tabla principal (botón y resultados)
@@ -1547,7 +1569,7 @@
                         }
                     }
 
-                    // Aplicar el color de fondo a la celda del nombre (inline style)
+                    // 6. Aplicar el color de fondo a la celda del nombre (inline style)
                     const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
                     if (studentRow) {
                         studentRow.querySelector('td:first-child').style.backgroundColor = assignedColor;
