@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evalyms+</title>
+    <!-- NUEVO ICONO SOLICITADO -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✎ᝰ</text></svg>">
     <!-- Incluir Bootstrap 5.3 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Iconos de Bootstrap -->
@@ -169,9 +171,63 @@
         .form-check-input.group-colored:checked {
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23000' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 5-5'/%3e%3csvg%3e");
         }
-
-        /* Se pueden definir las clases CSS dinámicas aquí o aplicar el color inline en JS, usaremos inline en JS */
         
+        /* Botón de evaluación rápida por estudiante */
+        .quick-eval-btn {
+            /* ** MODIFICACIONES CLAVE PARA TOUCH ** */
+            font-size: 1rem; 
+            padding: 5px 10px; 
+            line-height: 1;
+            margin-left: 5px;
+            /* ** MODIFICACIÓN SOLICITADA: Fondo blanco y borde sutil ** */
+            background-color: white !important;
+            border: 1px solid var(--secondary-color) !important;
+            color: black !important;
+        }
+        .quick-eval-btn:hover {
+            opacity: 0.8;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Para que el emoji ✍🏼 sea grande y visible */
+        .quick-eval-icon {
+            font-size: 1.2rem; 
+            line-height: 1;
+        }
+
+
+        /* Estilo para celda de nombre de estudiante para manejar el botón y el checkbox */
+        .student-name-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Para separar el checkbox del botón Evaluar */
+            padding-right: 5px !important; /* Ajuste para que el botón no quede pegado */
+        }
+        
+        /* Estilos para el panel de categorías */
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            background-color: #f4f4f4;
+            border-radius: 0.5rem;
+            margin-bottom: 5px;
+        }
+        .category-list-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 0.5rem;
+        }
+        
+        /* Estilos para las pestañas verticales del módulo de Listas de Cotejo */
+        .nav-pills-vertical .nav-link {
+            text-align: left;
+            border-radius: 0.5rem 0 0 0.5rem;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -182,10 +238,6 @@
             <!-- Icono de Evaluar y Nombre de la Aplicación -->
             <a class="navbar-brand" href="#">
                 <i class="bi bi-journals me-2"></i>Evalyms+
-            </a>
-            <!-- Botón de Menú Hamburguesa -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto" id="nav-links-container">
@@ -287,9 +339,27 @@
                     <button class="btn btn-info btn-icon mb-3 rounded-pill" data-bs-toggle="modal" data-bs-target="#checklistModal">
                         <i class="bi bi-journal-plus"></i> Crear Nueva Lista
                     </button>
-                    <div id="checklists-list" class="list-group">
-                        <!-- Aquí se renderizarán las listas de cotejo -->
+                    
+                    <!-- CORRECCIÓN DE ERROR: EL MENSAJE DEBE SER HERMANO DEL CONTENEDOR DE PESTAÑAS, NO UN HIJO. -->
+                    <p class="text-muted p-3 d-none" id="no-groups-checklist-msg">
+                        Crea un Grupo de Estudiantes primero para poder vincular listas de cotejo.
+                    </p>
+
+                    <!-- NUEVA ESTRUCTURA DE PESTAÑAS VERTICALES -->
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="nav flex-column nav-pills me-3 nav-pills-vertical" id="group-tabs" role="tablist" aria-orientation="vertical">
+                                <!-- Las pestañas de grupos se renderizan aquí -->
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="tab-content" id="tab-content-checklists">
+                                <!-- El contenido de las listas de cotejo se renderiza aquí por grupo -->
+                            </div>
+                        </div>
                     </div>
+                    <!-- FIN NUEVA ESTRUCTURA -->
+
                 </div>
             </div>
         </section>
@@ -313,6 +383,11 @@
                         </div>
                     </div>
 
+                    <!-- CAJA DE BÚSQUEDA (NUEVO) -->
+                    <div class="mb-4">
+                        <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
+                    </div>
+
                     <!-- Opciones de Evaluación Grupal -->
                     <div id="evaluation-options" class="mb-4 d-none">
                         <div class="d-flex align-items-center mb-3">
@@ -322,6 +397,7 @@
                                     Seleccionar Todos
                                 </label>
                             </div>
+                            <!-- El color del botón cambia dinámicamente en JS -->
                             <button id="group-evaluate-btn" class="btn btn-secondary btn-icon rounded-pill" disabled data-bs-toggle="modal" data-bs-target="#groupEvaluationModal">
                                 <i class="bi bi-arrows-collapse"></i> Evaluación Grupal (Por Criterio)
                             </button>
@@ -372,10 +448,14 @@
                         <button id="generate-summary-report" class="btn btn-outline-info btn-icon rounded-pill mt-2">
                             <i class="bi bi-file-earmark-text-fill"></i> Reporte Resumen General
                         </button>
+                        <!-- NUEVO BOTÓN DE REPORTE CONSOLIDADO -->
+                        <button id="generate-consolidated-report" class="btn btn-primary btn-icon rounded-pill mt-2" disabled>
+                            <i class="bi bi-table"></i> Reporte Consolidado por Grupo
+                        </button>
                     </div>
 
                     <div id="report-preview" class="mt-4 p-3 border rounded bg-light">
-                        <p class="mb-0 text-muted">Aquí se mostrará una vista previa simple del reporte seleccionado (Ver consola para la generación de PDF).</p>
+                        <p class="mb-0 text-muted">Aquí se mostrará una vista previa simple del reporte resumido.</p>
                     </div>
                 </div>
             </div>
@@ -414,8 +494,17 @@
                         </button>
                     </form>
 
-                    <h5 class="mt-4 mb-3">Restauración de Backups</h5>
-                    <p class="text-muted">Selecciona un backup para restaurar los datos (reemplazará los datos actuales).</p>
+                    <h5 class="mt-4 mb-3">Restauración desde Archivo (JSON)</h5>
+                    <p class="text-muted">Carga un archivo de backup JSON descargado previamente para restaurar los datos (reemplazará los datos actuales).</p>
+                    <div class="input-group mb-3">
+                        <input type="file" class="form-control rounded-start-lg" id="restore-file-input" accept=".json">
+                        <button class="btn btn-warning btn-icon" type="button" id="restore-from-file-btn">
+                            <i class="bi bi-upload"></i> Restaurar desde Archivo
+                        </button>
+                    </div>
+
+                    <h5 class="mt-4 mb-3">Restauración de Backups (Local Storage)</h5>
+                    <p class="text-muted">Selecciona un backup guardado en el navegador para restaurar.</p>
                     <div id="backup-list-container">
                         <!-- Aquí se listarán los backups disponibles -->
                         <p class="text-muted small">No hay backups disponibles.</p>
@@ -450,11 +539,71 @@
                         <label class="form-label">Lista de Estudiantes (un nombre por línea)</label>
                         <textarea class="form-control rounded-lg" id="group-students" rows="6" placeholder="Ej:&#10;Juan Pérez&#10;María Garcés&#10;..."></textarea>
                         <small class="text-muted">Los estudiantes se actualizarán al guardar. Los IDs de evaluación existentes se conservarán.</small>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- MÓDULO DE CATEGORÍAS DE EVALUACIÓN (REFERENCIA AL NUEVO MODAL) - SE HA ELIMINADO EL CHECKBOX Y EL CONTENEDOR DE LA VISTA DEL MODAL DE EDICIÓN DE GRUPO -->
+                        
+                        <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                            Categorías de Evaluación (Ponderación)
+                        </h6>
+
+                        <div id="categories-panel-link" class="p-3 border rounded-lg bg-light d-none text-center">
+                            <!-- Este contenedor se oculta por defecto y solo se usa para el estado del grupo -->
+                            <input type="hidden" id="temp-group-id-for-categories">
+                        </div>
+                        <!-- FIN REFERENCIA AL MÓDULO DE CATEGORÍAS -->
+
                         <div class="modal-footer mt-4">
                             <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
                             <button type="submit" class="btn btn-success rounded-pill">Guardar Grupo</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para Gestión de CATEGORÍAS (NUEVO MODAL) -->
+    <div class="modal fade" id="categoryManagementModal" tabindex="-1" aria-labelledby="categoryManagementModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content rounded-xl">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title" id="categoryManagementModalLabel">Categorías de Evaluación</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Define los tipos de evaluación y su peso en porcentaje para el grupo: <span id="current-group-name-categories" class="fw-bold"></span></p>
+
+                    <div id="categories-manager-content">
+                        <div class="row g-2 mb-3">
+                            <div class="col-12 col-md-5">
+                                <input type="text" class="form-control form-control-sm" id="new-category-name" placeholder="Nombre (Ej: Proyecto Final)">
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" id="new-category-weight" placeholder="Peso %" min="1" max="100">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="button" id="add-category-btn" class="btn btn-primary btn-sm w-100 rounded-pill">
+                                    <i class="bi bi-plus-circle"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="categories-list-container" class="category-list-container">
+                            <!-- Las categorías se renderizarán aquí -->
+                            <p class="text-muted small text-center mb-0" id="no-categories-msg">Aún no hay categorías definidas.</p>
+                        </div>
+                        <p class="text-end small mt-2">
+                            **Total Ponderado: <span id="total-weight-display" class="fw-bold">0%</span>**
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -477,6 +626,25 @@
                             <input type="text" class="form-control rounded-lg" id="checklist-name" required>
                         </div>
 
+                        <!-- NUEVOS CAMPOS DE VINCULACIÓN -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="checklist-group-link" class="form-label">Grupo Destino (Plantilla de Categoría)</label>
+                                <select id="checklist-group-link" class="form-select rounded-lg" required>
+                                    <option value="">-- Seleccionar Grupo --</option>
+                                </select>
+                                <small class="text-muted">Necesario para cargar las categorías.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="checklist-category-link" class="form-label">Categoría de Evaluación</label>
+                                <select id="checklist-category-link" class="form-select rounded-lg" required>
+                                    <option value="">-- Seleccionar Categoría --</option>
+                                </select>
+                                <small class="text-danger" id="category-warning-msg">Las categorías se cargarán al seleccionar un grupo.</small>
+                            </div>
+                        </div>
+                        
+
                         <h6 class="mt-4">Niveles de Evaluación y Puntajes</h6>
                         <div id="levels-container" class="row mb-3 g-2">
                             <!-- Los niveles se renderizan aquí dinámicamente -->
@@ -486,7 +654,7 @@
                         </button>
                         <small class="ms-3 text-muted">Mínimo 1 nivel. Ej: Destacado (5), Logrado (4), etc.</small>
 
-                        <h6 class="mt-4">Criterios de Evaluación (un criterio por línea)</h6>
+                        <h6 class="mt-4">Criterios de Evaluación (un criterio por línea - Se añadirá separador)</h6>
                         <textarea class="form-control rounded-lg" id="checklist-criteria" rows="5" placeholder="Ej:&#10;Usa vocabulario técnico adecuado.&#10;La presentación es organizada.&#10;..."></textarea>
 
                         <div class="modal-footer mt-4">
@@ -560,21 +728,26 @@
                     if (!appData.evaluations) appData.evaluations = {};
                     if (!appData.backupConfig) appData.backupConfig = { frequency: 'none', lastRun: 0 };
                     
-                    // Inicializar groupEvalColors si no existe (para la nueva estructura)
+                    // Inicializar groupEvalColors y categories si no existen
                     appData.studentGroups.forEach(group => {
                         group.students.forEach(student => {
                             if (!student.groupEvalColors) {
-                                // Transferir el color antiguo si existe, si no, inicializar
                                 student.groupEvalColors = {};
-                                if (student.groupEvalColor && student.groupColorClass) {
-                                    // NOTA: No podemos saber a qué checklist pertenecía el color global, 
-                                    // pero lo limpiaremos en la siguiente evaluación grupal/individual.
-                                    // Por ahora, simplemente eliminamos las propiedades globales obsoletas
-                                    delete student.groupEvalColor;
-                                    delete student.groupColorClass;
-                                }
                             }
                         });
+                        // NUEVO: Inicializar categorías en el grupo
+                        if (!group.categories) {
+                            group.categories = { use: true, list: [] }; // Se asume que usa categorías por defecto
+                        }
+                    });
+                    
+                    // Limpiar la propiedad weight de las checklists y asegurar la vinculación a categoría (NUEVO)
+                    appData.checklists.forEach(checklist => {
+                        if (checklist.weight !== undefined) {
+                            delete checklist.weight;
+                        }
+                        if (!checklist.linkedGroupId) checklist.linkedGroupId = '';
+                        if (!checklist.linkedCategory) checklist.linkedCategory = '';
                     });
 
                 } catch (e) {
@@ -622,7 +795,7 @@
             }
         }
 
-        function showModule(moduleId) {
+        function showModule(moduleId, groupIdToSelect = null) {
             document.querySelectorAll('.module-section').forEach(section => {
                 section.classList.add('d-none');
             });
@@ -635,7 +808,14 @@
 
             if (moduleId === 'student-management-module') renderStudentGroups();
             if (moduleId === 'checklist-module') renderChecklists();
-            if (moduleId === 'evaluation-module') renderEvaluationModuleSelectors();
+            if (moduleId === 'evaluation-module') {
+                renderEvaluationModuleSelectors();
+                // Si se proporciona un ID de grupo, lo selecciona automáticamente
+                if (groupIdToSelect) {
+                    document.getElementById('select-group').value = groupIdToSelect;
+                    document.getElementById('select-group').dispatchEvent(new Event('change'));
+                }
+            }
             if (moduleId === 'reports-module') renderReportSelectors();
             if (moduleId === 'backup-module') renderBackupModule(); // Nuevo módulo
 
@@ -660,14 +840,168 @@
         });
 
         // **********************************************
-        // MÓDULO DE GESTIÓN DE ESTUDIANTES (Mantienen intactas)
+        // MÓDULO DE GESTIÓN DE ESTUDIANTES 
         // **********************************************
 
-        function fillStudentGroupModal(groupId = null) {
+        // --- LÓGICA DE CATEGORÍAS (NUEVO) ---
+        
+        // Esta función se llama desde el modal de Categorías y para actualizar la vista previa en el modal de Grupos
+        function renderCategoriesList(group) {
+            const categories = group.categories.list;
+            const listContainer = document.getElementById('categories-list-container');
+            const totalDisplay = document.getElementById('total-weight-display');
+            const totalDisplayGroupModal = document.getElementById('total-weight-display-group-modal');
+            const noMsg = document.getElementById('no-categories-msg'); 
+            
+            const totalWeight = categories.reduce((sum, cat) => sum + cat.weight, 0);
+            
+            // Limpiar los nodos renderizados dinámicamente, manteniendo solo el mensaje noMsg
+            let nodesToRemove = [];
+            listContainer.childNodes.forEach(node => {
+                if (node.nodeType === 1 && node.id !== 'no-categories-msg') {
+                    nodesToRemove.push(node);
+                }
+            });
+            nodesToRemove.forEach(node => listContainer.removeChild(node));
+
+            // Si no hay categorías, mostramos el mensaje.
+            if (categories.length === 0) {
+                noMsg.classList.remove('d-none');
+            } else {
+                // Si hay categorías, ocultamos el mensaje
+                noMsg.classList.add('d-none');
+                
+                // Renderizar las categorías y añadirlas al inicio del contenedor (antes de noMsg)
+                categories.forEach((cat, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'category-item';
+                    item.innerHTML = `
+                        <span>${cat.name}</span>
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-secondary me-2">${cat.weight}%</span>
+                            <button type="button" class="btn btn-sm btn-outline-danger delete-category-btn" data-index="${index}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    listContainer.insertBefore(item, noMsg); // Insertar antes de noMsg
+                });
+            }
+
+            // Actualizar displays
+            totalDisplay.textContent = `${totalWeight}%`;
+            totalDisplay.classList.toggle('text-danger', totalWeight !== 100);
+            totalDisplay.classList.toggle('text-success', totalWeight === 100);
+
+            if (totalDisplayGroupModal) {
+                 totalDisplayGroupModal.textContent = `${totalWeight}%`;
+            }
+            
+            // Re-asignar listeners de eliminación
+            document.querySelectorAll('.delete-category-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.dataset.index, 10);
+                    // Usamos el ID almacenado en el modal de categorías
+                    const groupId = document.getElementById('temp-group-id-for-categories').value; 
+                    const targetGroup = appData.studentGroups.find(g => g.id === groupId);
+
+                    if (targetGroup) {
+                        targetGroup.categories.list.splice(index, 1);
+                        renderCategoriesList(targetGroup); // Re-renderizar con el grupo modificado
+                        saveData();
+                        renderStudentGroups(); // Refrescar lista de grupos
+                    }
+                });
+            });
+        }
+        
+        function updateCategoryDisplayInModal(group) {
+            // Esta función es ahora solo un alias para renderCategoriesList
+            renderCategoriesList(group);
+        }
+
+
+        // Toggle switch handler en el Modal de Grupos
+        // ELIMINADO EL LISTENER DEL SWITCH YA QUE EL SWITCH FUE ELIMINADO
+
+        // Add category handler en el Modal de Categorías
+        document.getElementById('add-category-btn').addEventListener('click', () => {
+            const groupId = document.getElementById('temp-group-id-for-categories').value; // Usar el ID temporal
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            
+            if (!group) {
+                showToast('Error: No se encontró el grupo de destino.', 'warning');
+                return;
+            }
+
+            const nameInput = document.getElementById('new-category-name');
+            const weightInput = document.getElementById('new-category-weight');
+
+            const name = nameInput.value.trim();
+            const weight = parseInt(weightInput.value, 10);
+            const currentTotal = group.categories.list.reduce((sum, cat) => sum + cat.weight, 0);
+            
+            if (!name || isNaN(weight) || weight <= 0 || weight > 100) {
+                showToast('Ingresa un nombre y un peso válido (1-100).', 'danger');
+                return;
+            }
+            if (currentTotal + weight > 100) {
+                showToast(`El peso total excede el 100%. Solo quedan ${100 - currentTotal}% disponibles.`, 'danger');
+                return;
+            }
+
+            group.categories.list.push({ name: name, weight: weight });
+            // Aseguramos que 'use' siempre esté en true al añadir una categoría
+            group.categories.use = true; 
+            
+            renderCategoriesList(group); // Re-renderizar el modal de categorías
+            saveData(); // Guardar cambios en el modelo
+            nameInput.value = '';
+            weightInput.value = '';
+        });
+
+        // Evento que se dispara al abrir el Modal de Categorías
+        document.getElementById('categoryManagementModal').addEventListener('show.bs.modal', (e) => {
+            const groupId = document.getElementById('temp-group-id-for-categories').value;
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            
+            if (group) {
+                document.getElementById('current-group-name-categories').textContent = group.name;
+                renderCategoriesList(group);
+            } else {
+                document.getElementById('current-group-name-categories').textContent = 'N/A';
+                document.getElementById('categories-list-container').innerHTML = '<p class="text-muted small text-center mb-0" id="no-categories-msg">No se pudo cargar la información del grupo.</p>';
+            }
+        });
+
+        // Evento que se dispara al cerrar el Modal de Categorías
+        document.getElementById('categoryManagementModal').addEventListener('hidden.bs.modal', () => {
+             // Asegurarse de que la vista previa en el modal de grupos se actualice.
+             const groupId = document.getElementById('temp-group-id-for-categories').value;
+             const group = appData.studentGroups.find(g => g.id === groupId);
+             if (group) {
+                 const totalWeight = group.categories.list.reduce((sum, cat) => sum + cat.weight, 0);
+                 // Este display ya no existe en el modal de grupos, pero mantenemos la lógica por si se reintroduce.
+                 const totalDisplayGroupModal = document.getElementById('total-weight-display-group-modal');
+                 if(totalDisplayGroupModal) totalDisplayGroupModal.textContent = `${totalWeight}%`;
+             }
+        });
+
+
+        // --- FIN LÓGICA DE CATEGORÍAS ---
+
+
+        function fillStudentGroupModal(groupId = null, focusCategoryPanel = false) {
             const form = document.getElementById('student-group-form');
             form.reset();
             document.getElementById('group-id').value = '';
             document.getElementById('group-students').value = '';
+            
+            // Elementos eliminados del HTML: manageBtnContainer, manageBtn, totalDisplayGroupModal
+            // Se mantienen las referencias internas solo por si el submit necesita los datos.
+            const manageBtn = document.getElementById('manage-categories-btn'); // Referencia del botón interno
+
+            let categories = { use: true, list: [] }; // Asumimos uso de categorías por defecto
 
             if (groupId) {
                 const group = appData.studentGroups.find(g => g.id === groupId);
@@ -677,10 +1011,21 @@
                     document.getElementById('group-section').value = group.section;
                     document.getElementById('group-students').value = group.students.map(s => s.name).join('\n');
                     document.getElementById('studentGroupModalLabel').textContent = 'Editar Grupo: ' + group.name;
+                    
+                    categories = group.categories;
                 }
             } else {
                 document.getElementById('studentGroupModalLabel').textContent = 'Crear Nuevo Grupo de Estudiantes';
             }
+            
+            // ** LÓGICA DE CATEGORÍAS SIMPLIFICADA **
+            // Ya no hay switch. El grupo usa categorías por defecto al crearse.
+            
+            // Almacenar el ID del grupo en el campo oculto del modal para usarlo en el modal de categorías
+            document.getElementById('temp-group-id-for-categories').value = groupId || '';
+            
+            // El botón manage-categories-btn ya no está en el DOM, su lógica de habilitación se mueve
+            // a la función que abre el modal de categorías.
         }
         
         function renderStudentGroups() {
@@ -694,14 +1039,26 @@
 
             appData.studentGroups.forEach(group => {
                 const studentCount = group.students.length;
+                const usesCategories = group.categories?.use && group.categories.list.length > 0 ? ' (Ponderado)' : '';
                 const listItem = document.createElement('div');
                 listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-lg mb-2';
                 listItem.innerHTML = `
                     <div>
-                        <h5 class="mb-1 text-success">${group.name}</h5>
+                        <h5 class="mb-1 text-success">${group.name} ${usesCategories}</h5>
                         <p class="mb-1 text-muted">Sección: ${group.section} | Estudiantes: ${studentCount}</p>
                     </div>
                     <div>
+                        <!-- NUEVO BOTÓN: CATEGORÍAS (MODIFICADO para ir directo al modal de gestión) -->
+                        <button class="btn btn-sm btn-secondary btn-icon me-2 rounded-pill manage-categories-direct" 
+                                data-id="${group.id}" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#categoryManagementModal">
+                            <i class="bi bi-tags-fill"></i> Categorías
+                        </button>
+                        <!-- NUEVO BOTÓN: EVALUAR DIRECTO -->
+                        <button class="btn btn-sm btn-warning btn-icon me-2 rounded-pill evaluate-group-direct" data-id="${group.id}">
+                            <i class="bi bi-clipboard-data-fill"></i> Evaluar
+                        </button>
                         <button class="btn btn-sm btn-outline-primary btn-icon me-2 rounded-pill edit-group" data-id="${group.id}" data-bs-toggle="modal" data-bs-target="#studentGroupModal">
                             <i class="bi bi-pencil-fill"></i> Modificar
                         </button>
@@ -719,6 +1076,24 @@
             document.querySelectorAll('.delete-group').forEach(btn => {
                 btn.addEventListener('click', (e) => deleteStudentGroup(e.currentTarget.dataset.id));
             });
+            // NUEVO LISTENER para el botón Evaluar directo
+            document.querySelectorAll('.evaluate-group-direct').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const groupId = e.currentTarget.dataset.id;
+                    showModule('evaluation-module', groupId);
+                });
+            });
+            // NUEVO LISTENER para el botón Categorías (MODIFICADO)
+            document.querySelectorAll('.manage-categories-direct').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const groupId = e.currentTarget.dataset.id;
+                    
+                    // 1. Sincronizar el ID temporal necesario para el modal de categorías
+                    document.getElementById('temp-group-id-for-categories').value = groupId;
+                    // El evento show.bs.modal se encargará de renderizar las categorías
+                });
+            });
+            // El listener para el botón "Categorías" dentro del modal de edición se mantiene para editar el switch/abrir el modal de gestión.
         }
         
         document.getElementById('student-group-form').addEventListener('submit', function(e) {
@@ -728,10 +1103,27 @@
             const groupSection = document.getElementById('group-section').value.trim();
             const studentsText = document.getElementById('group-students').value.trim();
             const studentNames = studentsText.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-
-            let newStudents = [];
+            
+            // El checkbox useCategories fue eliminado, asumimos siempre true si se gestionan categorías.
+            const useCategories = true; 
+            
             let existingGroup = appData.studentGroups.find(g => g.id === groupId);
             
+            // Obtener lista de categorías desde el modelo 
+            let categoriesList = existingGroup?.categories?.list || [];
+
+            // Validar Categorías
+            // Solo validamos si el grupo YA EXISTE Y tiene categorías definidas
+            if (groupId && categoriesList.length > 0) {
+                const totalWeight = categoriesList.reduce((sum, cat) => sum + cat.weight, 0);
+                if (totalWeight !== 100) {
+                    showToast('El total de categorías debe sumar 100% para guardar. Edita las categorías.', 'danger');
+                    return;
+                }
+            }
+
+
+            let newStudents = [];
             studentNames.forEach(name => {
                 const existingStudent = existingGroup ? existingGroup.students.find(s => s.name === name) : null;
                 newStudents.push({
@@ -742,19 +1134,35 @@
                 });
             });
 
+            // Si es un grupo nuevo, inicializamos las categorías como vacías, pero 'use' en true.
+            const newCategories = { 
+                use: useCategories, 
+                list: categoriesList 
+            };
+
             if (groupId) {
                 existingGroup.name = groupName;
                 existingGroup.section = groupSection;
                 existingGroup.students = newStudents;
+                existingGroup.categories = newCategories;
             } else {
+                const newGroupId = generateId();
                 appData.studentGroups.push({
-                    id: generateId(),
+                    id: newGroupId,
                     name: groupName,
                     section: groupSection,
-                    students: newStudents
+                    students: newStudents,
+                    categories: { use: true, list: [] } // Nuevo grupo, categorías vacías pero activas
                 });
+                
+                // Forzamos la carga del nuevo ID en el campo oculto antes de guardar
+                document.getElementById('group-id').value = newGroupId;
+                document.getElementById('temp-group-id-for-categories').value = newGroupId;
+                
+                showToast('Grupo creado. Utiliza el botón "Categorías" para definir la ponderación.', 'info');
             }
 
+            // MODIFICACIÓN 1: El modal se cierra en ambos casos (existente o nuevo) después de guardar.
             saveData();
             renderStudentGroups();
             const modal = bootstrap.Modal.getInstance(document.getElementById('studentGroupModal'));
@@ -788,7 +1196,24 @@
             form.reset();
             document.getElementById('checklist-id').value = '';
             document.getElementById('checklist-criteria').value = '';
+            
+            // EL BOTÓN HA SIDO MOVIDO FUERA DEL MODAL, PERO SU LÓGICA DE EXPORTACIÓN SIGUE EN JS
+            const groupLinkSelect = document.getElementById('checklist-group-link');
+            const categoryLinkSelect = document.getElementById('checklist-category-link');
+            
+            // Limpiar y llenar grupos para la vinculación
+            groupLinkSelect.innerHTML = '<option value="">-- Seleccionar Grupo --</option>';
+            appData.studentGroups.forEach(group => {
+                // CORRECCIÓN DE ERROR: Usar groupLinkSelect en lugar de selectGroup
+                groupLinkSelect.innerHTML += `<option value="${group.id}">${group.name} (${group.section})</option>`;
+            });
+
+            categoryLinkSelect.innerHTML = '<option value="">-- Seleccionar Categoría --</option>';
+            document.getElementById('category-warning-msg').classList.remove('d-none'); // Mostrar advertencia
+            
             let levels = [...defaultLevels];
+            let linkedGroupId = '';
+            let linkedCategory = '';
 
             if (checklistId) {
                 const checklist = appData.checklists.find(c => c.id === checklistId);
@@ -796,14 +1221,59 @@
                     document.getElementById('checklist-id').value = checklist.id;
                     document.getElementById('checklist-name').value = checklist.name;
                     document.getElementById('checklist-criteria').value = checklist.criteria.join('\n');
+                    
                     levels = checklist.levels;
+                    linkedGroupId = checklist.linkedGroupId;
+                    linkedCategory = checklist.linkedCategory;
+                    
                     document.getElementById('checklistModalLabel').textContent = 'Editar Lista de Cotejo: ' + checklist.name;
                 }
             } else {
                 document.getElementById('checklistModalLabel').textContent = 'Crear Nueva Lista de Cotejo';
             }
+            
+            groupLinkSelect.value = linkedGroupId;
+            if (linkedGroupId) {
+                 // Cargar categorías si hay grupo vinculado
+                 loadCategoriesForChecklist(linkedGroupId, linkedCategory);
+            }
+            
             renderLevelInputs(levels);
         }
+        
+        // NUEVA FUNCIÓN: Cargar categorías al cambiar el grupo en el modal de lista de cotejo
+        function loadCategoriesForChecklist(groupId, selectedCategory = '') {
+            const categorySelect = document.getElementById('checklist-category-link');
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            
+            categorySelect.innerHTML = '<option value="">-- Seleccionar Categoría --</option>';
+            document.getElementById('category-warning-msg').classList.remove('text-success');
+
+            if (group && group.categories.use && group.categories.list.length > 0) {
+                group.categories.list.forEach(cat => {
+                    categorySelect.innerHTML += `<option value="${cat.name}">${cat.name} (${cat.weight}%)</option>`;
+                });
+                categorySelect.value = selectedCategory;
+                document.getElementById('category-warning-msg').classList.add('d-none');
+            } else if (group && (!group.categories.use || group.categories.list.length === 0)) {
+                // Si no usa categorías, o usa categorías pero la lista está vacía, forzar una categoría "General 100%"
+                const generalCat = 'GENERAL';
+                categorySelect.innerHTML += `<option value="${generalCat}">${generalCat} (100%)</option>`;
+                categorySelect.value = generalCat;
+                document.getElementById('category-warning-msg').classList.remove('d-none');
+                document.getElementById('category-warning-msg').classList.add('text-success');
+                document.getElementById('category-warning-msg').textContent = 'El grupo no usa ponderación o no tiene categorías. Se usará la categoría GENERAL (100%).';
+            } else {
+                 document.getElementById('category-warning-msg').classList.remove('d-none');
+                 document.getElementById('category-warning-msg').textContent = 'El grupo seleccionado no tiene categorías definidas.';
+            }
+        }
+
+        // Listener para el selector de grupo en el modal de lista de cotejo
+        document.getElementById('checklist-group-link').addEventListener('change', (e) => {
+            loadCategoriesForChecklist(e.target.value);
+        });
+
 
         function renderLevelInputs(levels) {
             const container = document.getElementById('levels-container');
@@ -856,13 +1326,28 @@
             const checklistId = document.getElementById('checklist-id').value;
             const checklistName = document.getElementById('checklist-name').value.trim();
             const criteriaText = document.getElementById('checklist-criteria').value.trim();
-            const criteria = criteriaText.split('\n').map(c => c.trim()).filter(c => c.length > 0);
+            const linkedGroupId = document.getElementById('checklist-group-link').value;
+            const linkedCategory = document.getElementById('checklist-category-link').value;
+            
+            // Procesamiento de criterios (separador y limpieza de líneas)
+            const criteria = criteriaText.split('\n')
+                .map(c => c.trim())
+                .filter(c => c.length > 0)
+                .join('---') // UNIR CON SEPARADOR
+                .split('---')
+                .map(c => c.trim())
+                .filter(c => c.length > 0); // RE-SPLIT Y LIMPIEZA FINAL
+
             
             const levelNames = Array.from(document.querySelectorAll('.level-name')).map(input => input.value.trim());
             const levelScores = Array.from(document.querySelectorAll('.level-score')).map(input => parseInt(input.value, 10));
             
             if (levelNames.length === 0) {
                 showToast('Debe haber al menos un Nivel de Evaluación.', 'danger');
+                return;
+            }
+            if (!linkedGroupId || !linkedCategory) {
+                showToast('Debe seleccionar un Grupo y una Categoría de Evaluación válidos.', 'danger');
                 return;
             }
 
@@ -880,12 +1365,18 @@
                 existingChecklist.name = checklistName;
                 existingChecklist.levels = levels;
                 existingChecklist.criteria = criteria;
+                // VINCULACIÓN (NUEVO)
+                existingChecklist.linkedGroupId = linkedGroupId;
+                existingChecklist.linkedCategory = linkedCategory;
             } else {
                 appData.checklists.push({
                     id: generateId(),
                     name: checklistName,
                     levels: levels,
-                    criteria: criteria
+                    criteria: criteria,
+                    // VINCULACIÓN (NUEVO)
+                    linkedGroupId: linkedGroupId,
+                    linkedCategory: linkedCategory
                 });
             }
 
@@ -910,42 +1401,231 @@
                 showToast('Lista de Cotejo duplicada exitosamente.', 'info');
             }
         }
-
-
-        function renderChecklists() {
-            const listContainer = document.getElementById('checklists-list');
-            listContainer.innerHTML = '';
-
-            if (appData.checklists.length === 0) {
-                listContainer.innerHTML = '<p class="text-muted p-3">No hay Listas de Cotejo creadas. Usa el botón "Crear Nueva Lista".</p>';
+        
+        // NUEVA FUNCIÓN: Exportar y Compartir Lista de Cotejo
+        function exportAndShareChecklist(checklistId) {
+            const checklist = appData.checklists.find(c => c.id === checklistId);
+            
+            if (!checklist) {
+                showToast('Lista de Cotejo no encontrada.', 'danger');
                 return;
             }
 
-            appData.checklists.forEach(checklist => {
-                const criteriaCount = checklist.criteria.length;
-                const levelsText = checklist.levels.map(l => `${l.name} (${l.score})`).join(', ');
-                const listItem = document.createElement('div');
-                listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-lg mb-2';
-                listItem.innerHTML = `
-                    <div class="flex-grow-1 me-3">
-                        <h5 class="mb-1 text-info">${checklist.name}</h5>
-                        <p class="mb-1 text-muted">Criterios: ${criteriaCount} | Niveles: ${levelsText}</p>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-outline-secondary btn-icon me-2 rounded-pill duplicate-checklist" data-id="${checklist.id}">
-                            <i class="bi bi-copy"></i> Duplicar
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary btn-icon me-2 rounded-pill edit-checklist" data-id="${checklist.id}" data-bs-toggle="modal" data-bs-target="#checklistModal">
-                            <i class="bi bi-pencil-fill"></i> Modificar
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger btn-icon rounded-pill delete-checklist" data-id="${checklist.id}">
-                            <i class="bi bi-trash-fill"></i> Eliminar
-                        </button>
-                    </div>
-                `;
-                listContainer.appendChild(listItem);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const center = pageWidth / 2;
+            const PRIMARY_BLUE = [15, 76, 129]; 
+            const SECONDARY_GRAY = [108, 117, 125];
+
+            let y = 15;
+            
+            // Título
+            doc.setFontSize(20);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+            doc.text(`Lista de Cotejo: ${checklist.name}`, center, y, { align: 'center' });
+            y += 8;
+
+            // Información de Categoría
+            const groupLink = appData.studentGroups.find(g => g.id === checklist.linkedGroupId);
+            const categoryInfo = groupLink 
+                ? `Categoría: ${checklist.linkedCategory} (${groupLink.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100}%) | Grupo de Referencia: ${groupLink.name}`
+                : `No vinculada o grupo no encontrado.`;
+
+            doc.setFontSize(10);
+            doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+            doc.text(categoryInfo, center, y, { align: 'center' });
+            y += 10;
+            
+            // Tabla de Niveles
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Niveles de Evaluación', 10, y);
+            y += 3;
+            
+            const levelsHead = [['Nivel', 'Puntaje']];
+            const levelsBody = checklist.levels.map(l => [l.name, l.score.toString()]);
+            
+            doc.autoTable({
+                head: levelsHead,
+                body: levelsBody,
+                startY: y,
+                theme: 'grid',
+                headStyles: { fillColor: [40, 167, 69], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 2 },
+                columnStyles: { 1: { halign: 'center' } },
+                margin: { left: 10, right: 10 }
+            });
+
+            y = doc.autoTable.previous.finalY + 10;
+            
+            // Tabla de Criterios
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Criterios a Evaluar', 10, y);
+            y += 3;
+            
+            const criteriaRaw = checklist.criteria;
+            const criteriaBody = [];
+            let criterionCounter = 1;
+
+            // Reconstruir la lista de criterios con separadores
+            criteriaRaw.forEach((c) => {
+                if (c === '---') {
+                    criteriaBody.push([ '', '----- SEPARADOR DE SECCIÓN -----' ]);
+                } else {
+                    criteriaBody.push([ criterionCounter.toString(), c ]);
+                    criterionCounter++;
+                }
+            });
+
+            const criteriaHead = [['#', 'Descripción']];
+            
+            doc.autoTable({
+                head: criteriaHead,
+                body: criteriaBody,
+                startY: y,
+                theme: 'striped',
+                headStyles: { fillColor: PRIMARY_BLUE, textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 10 },
+                columnStyles: { 0: { cellWidth: 10, halign: 'center' } },
+                margin: { left: 10, right: 10 },
+                didParseCell: (data) => {
+                    // Estilo para el separador
+                    if (data.row.raw[1].includes('SEPARADOR')) {
+                        data.cell.styles.fillColor = [220, 220, 220]; // Gris claro
+                        data.cell.styles.fontStyle = 'italic';
+                        data.cell.styles.textColor = [100, 100, 100];
+                    }
+                }
             });
             
+            // Generar el Blob y URL
+            const blob = doc.output('blob');
+            const file = new File([blob], `Lista_Cotejo_${checklist.name}.pdf`, { type: blob.type });
+            const pdfUrl = URL.createObjectURL(file);
+            
+            const message = `*Evalyms+ Lista de Cotejo:* ${checklist.name} (Categoría: ${checklist.linkedCategory}). Revisa el archivo adjunto.`;
+            
+            showToast('Generando PDF. Para compartir por WhatsApp, necesitas un gestor de archivos o compartirlo manualmente.', 'info');
+            
+            window.open(pdfUrl, '_blank');
+            
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            
+            setTimeout(() => {
+                const confirmShare = confirm('PDF generado. ¿Deseas abrir WhatsApp para enviar el mensaje de texto (el archivo debes adjuntarlo manualmente)?');
+                if (confirmShare) {
+                    window.open(whatsappUrl, '_blank');
+                }
+            }, 1000);
+        }
+
+
+        function renderChecklists() {
+            const groupTabsContainer = document.getElementById('group-tabs');
+            const tabContentContainer = document.getElementById('tab-content-checklists');
+            const noGroupsMsg = document.getElementById('no-groups-checklist-msg'); // Obtenido correctamente (ya está fuera del contenido que se limpia)
+
+            groupTabsContainer.innerHTML = '';
+            tabContentContainer.innerHTML = '';
+
+            if (appData.studentGroups.length === 0) {
+                noGroupsMsg.classList.remove('d-none'); // Error corregido: noGroupsMsg ya no es null.
+                return;
+            }
+            noGroupsMsg.classList.add('d-none');
+            
+            let firstGroup = true;
+            let firstTabId = '';
+
+            appData.studentGroups.forEach(group => {
+                const tabId = `group-tab-${group.id}`;
+                const tabPaneId = `group-content-${group.id}`;
+                // Eliminamos la activación forzada aquí
+                // const isActive = firstGroup ? 'active' : '';
+
+                if (firstGroup) {
+                    firstTabId = tabId;
+                }
+
+                // 1. Renderizar Pestaña (Nav Pill)
+                const tabLink = `
+                    <button class="nav-link" id="${tabId}" data-bs-toggle="pill" data-bs-target="#${tabPaneId}" type="button" role="tab" aria-controls="${tabPaneId}" aria-selected="${firstGroup ? 'true' : 'false'}">
+                        ${group.name} (${group.section})
+                    </button>
+                `;
+                groupTabsContainer.innerHTML += tabLink;
+
+                // 2. Renderizar Contenido de la Pestaña
+                const checklistsForGroup = appData.checklists.filter(c => c.linkedGroupId === group.id);
+
+                // Eliminamos la activación forzada aquí
+                let contentHtml = `
+                    <div class="tab-pane fade" id="${tabPaneId}" role="tabpanel" aria-labelledby="${tabId}">
+                        <h5 class="mb-3 text-secondary">${group.name} (${group.section}) - Listas de Cotejo</h5>
+                        <div class="list-group">
+                `;
+                
+                if (checklistsForGroup.length === 0) {
+                    contentHtml += `<p class="text-muted p-3">No hay listas de cotejo vinculadas a este grupo.</p>`;
+                } else {
+                    checklistsForGroup.forEach(checklist => {
+                        const criteriaCount = checklist.criteria.filter(c => c !== '---').length;
+                        const categoryInfo = checklist.linkedCategory || 'N/A';
+                        const weightInfo = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || '100';
+
+                        const levelsText = checklist.levels.map(l => `${l.name} (${l.score})`).join(', ');
+                        
+                        contentHtml += `
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-lg mb-2">
+                                <div class="flex-grow-1 me-3">
+                                    <h5 class="mb-1 text-info">${checklist.name} <span class="badge bg-secondary ms-2">${categoryInfo} (${weightInfo}%)</span></h5>
+                                    <p class="mb-1 text-muted">Criterios: ${criteriaCount} | Niveles: ${levelsText}</p>
+                                </div>
+                                <div>
+                                    <!-- BOTONES DE ACCIÓN -->
+                                    <button class="btn btn-sm btn-success btn-icon me-2 rounded-pill export-share-checklist-btn" data-id="${checklist.id}">
+                                        <i class="bi bi-whatsapp"></i> Exportar (PDF)
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary btn-icon me-2 rounded-pill duplicate-checklist" data-id="${checklist.id}">
+                                        <i class="bi bi-copy"></i> Duplicar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary btn-icon me-2 rounded-pill edit-checklist" data-id="${checklist.id}" data-bs-toggle="modal" data-bs-target="#checklistModal">
+                                        <i class="bi bi-pencil-fill"></i> Modificar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-icon rounded-pill delete-checklist" data-id="${checklist.id}">
+                                        <i class="bi bi-trash-fill"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                contentHtml += `</div></div>`;
+                tabContentContainer.innerHTML += contentHtml;
+                firstGroup = false;
+            });
+
+            // *** NUEVA LÓGICA: Usar la API de Bootstrap para activar la primera pestaña de forma segura ***
+            if (firstTabId) {
+                // Usamos un pequeño timeout para asegurar que el DOM ha procesado el innerHTML
+                // Y ahora usamos el método 'get' en lugar de 'show' para evitar el error de referencia en null
+                setTimeout(() => {
+                    const firstNavLinkElement = document.getElementById(firstTabId);
+                    if (firstNavLinkElement) {
+                        const tab = bootstrap.Tab.getOrCreateInstance(firstNavLinkElement);
+                        tab.show();
+                    }
+                }, 0);
+            }
+            // **********************************************
+
+            // Re-asignar todos los listeners a los botones recién creados
             document.querySelectorAll('.edit-checklist').forEach(btn => {
                 btn.addEventListener('click', (e) => fillChecklistModal(e.currentTarget.dataset.id));
             });
@@ -954,6 +1634,9 @@
             });
             document.querySelectorAll('.duplicate-checklist').forEach(btn => {
                 btn.addEventListener('click', (e) => duplicateChecklist(e.currentTarget.dataset.id));
+            });
+            document.querySelectorAll('.export-share-checklist-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => exportAndShareChecklist(e.currentTarget.dataset.id));
             });
         }
 
@@ -1012,8 +1695,11 @@
                 newColorHex = availableColors[0];
             } else {
                 // Si todos los colores están en uso, tomamos el siguiente cíclicamente de la paleta
-                const lastColorIndex = GROUP_COLORS_HEX.findIndex(color => usedColors.has(color))
-                const nextIndex = (lastColorIndex + 1) % GROUP_COLORS_HEX.length;
+                // Implementación cíclica simple
+                const allUsed = Array.from(usedColors);
+                const lastColor = allUsed[allUsed.length - 1];
+                const lastIndex = GROUP_COLORS_HEX.indexOf(lastColor);
+                const nextIndex = (lastIndex + 1) % GROUP_COLORS_HEX.length;
                 newColorHex = GROUP_COLORS_HEX[nextIndex];
             }
 
@@ -1024,14 +1710,27 @@
                 class: colorClass
             };
         }
+
+        // Función para filtrar la tabla (NUEVO)
+        document.getElementById('student-search').addEventListener('keyup', (e) => {
+            const searchText = e.target.value.toLowerCase().trim();
+            const tableBody = document.querySelector('#evaluation-table tbody');
+            if (!tableBody) return;
+            
+            const rows = tableBody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const studentName = row.querySelector('.form-check-label').textContent.toLowerCase();
+                if (studentName.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            // Revisa la selección grupal después de filtrar, aunque esto es principalmente visual
+            checkGroupEvaluationReadiness(); 
+        });
+
         
-        // Función para limpiar el color de grupo de un estudiante individual (OBSOLETA, se maneja por render)
-        function clearGroupColor(groupId, studentId) {
-            // Esta función ya no es necesaria en este enfoque, ya que la limpieza se hace en la renderización
-            // al no encontrar un score > 0, o al sobrescribir en setScoreFromCell
-        }
-        
-        // Función auxiliar para actualizar el icono de evaluación individual
         function updateEvaluationCheckIcon(studentId, row) {
             const groupId = document.getElementById('select-group').value;
             const checklistId = document.getElementById('select-checklist').value;
@@ -1040,12 +1739,14 @@
             const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
             
             const label = row.querySelector('.form-check-label');
-            const nameText = label.textContent.replace(/\s<i.*?<\/i>$/, '').trim(); // Eliminar check existente
+            // Nota: Aquí quitamos el botón 'Evaluar' para no interferir con el icono de check
+            // Buscar el texto y el icono de check (si existe) para preservar el nombre
+            const nameContent = label.innerHTML.trim().split('<i class="bi bi-check-circle-fill evaluated-check"></i>')[0].trim();
             
             if (totalScore > 0) {
-                label.innerHTML = `${nameText} <i class="bi bi-check-circle-fill evaluated-check"></i>`;
+                label.innerHTML = `${nameContent} <i class="bi bi-check-circle-fill evaluated-check"></i>`;
             } else {
-                label.innerHTML = nameText;
+                label.innerHTML = nameContent; // Solo el nombre
             }
         }
 
@@ -1058,15 +1759,18 @@
                 selectGroup.innerHTML += `<option value="${group.id}">${group.name} (${group.section})</option>`;
             });
 
+            // CORRECCIÓN: Inicializar la lista de cotejo vacía (se llenará al seleccionar grupo)
             selectChecklist.innerHTML = '<option value="">-- Seleccionar Lista de Cotejo --</option>';
-            appData.checklists.forEach(checklist => {
-                selectChecklist.innerHTML += `<option value="${checklist.id}">${checklist.name}</option>`;
-            });
             
             const currentGroup = selectGroup.dataset.selectedId;
             const currentChecklist = selectChecklist.dataset.selectedId;
             if (currentGroup) selectGroup.value = currentGroup;
-            if (currentChecklist) selectChecklist.value = currentChecklist;
+            // No seteamos el valor de la lista de cotejo aquí ya que puede ser obsoleta
+            
+            if (selectGroup.value) {
+                // Llamar a la función que ahora manejará el llenado de checklists
+                updateChecklistSelector(selectGroup.value, currentChecklist);
+            }
 
             if (selectGroup.value && selectChecklist.value) {
                 renderEvaluationTable(selectGroup.value, selectChecklist.value);
@@ -1075,15 +1779,45 @@
                     '<p class="text-center text-muted m-4">Selecciona un Grupo y una Lista de Cotejo para comenzar.</p>';
                 document.getElementById('evaluation-info-header').classList.add('d-none');
             }
+            // Limpiar la búsqueda al cambiar de módulo
+            document.getElementById('student-search').value = '';
         }
         
+        // NUEVA FUNCIÓN: Filtra y actualiza el selector de Listas de Cotejo basado en el Grupo seleccionado
+        function updateChecklistSelector(groupId, selectedChecklistId = null) {
+            const selectChecklist = document.getElementById('select-checklist');
+            selectChecklist.innerHTML = '<option value="">-- Seleccionar Lista de Cotejo --</option>';
+
+            if (groupId) {
+                // Filtrar solo las listas cuyo linkedGroupId coincida con el groupId seleccionado
+                const filteredChecklists = appData.checklists.filter(c => c.linkedGroupId === groupId);
+                
+                filteredChecklists.forEach(checklist => {
+                    selectChecklist.innerHTML += `<option value="${checklist.id}">${checklist.name} (${checklist.linkedCategory})</option>`;
+                });
+                
+                // Intentar mantener la selección si la lista todavía existe en este grupo
+                if (selectedChecklistId && filteredChecklists.some(c => c.id === selectedChecklistId)) {
+                    selectChecklist.value = selectedChecklistId;
+                } else {
+                    selectChecklist.value = "";
+                }
+            }
+        }
+
+
         document.getElementById('select-group').addEventListener('change', (e) => {
             document.getElementById('select-group').dataset.selectedId = e.target.value;
+            const groupId = e.target.value;
+            
+            // 1. Actualizar el selector de listas basado en el grupo
+            updateChecklistSelector(groupId);
+
+            // 2. Intentar renderizar la tabla si la lista ya está seleccionada (o forzar el mensaje de inicio)
             const checklistId = document.getElementById('select-checklist').value;
             
-            // Si el grupo y la lista están seleccionados, renderiza la tabla.
-            if (e.target.value && checklistId) {
-                renderEvaluationTable(e.target.value, checklistId);
+            if (groupId && checklistId) {
+                renderEvaluationTable(groupId, checklistId);
             } else {
                 // Si la selección está incompleta, limpia y muestra mensaje.
                 document.getElementById('evaluation-table-container').innerHTML = 
@@ -1133,6 +1867,14 @@
                 return;
             }
 
+            // Validar vinculación de lista de cotejo con grupo seleccionado
+            if (checklist.linkedGroupId !== groupId) {
+                 container.innerHTML = `<p class="text-center text-danger m-4">ERROR: Esta lista de cotejo ("${checklist.name}") no está vinculada al grupo seleccionado ("${group.name}"). Por favor, edite la lista para vincularla a este grupo, o seleccione una lista correcta.</p>`;
+                evaluationOptions.classList.add('d-none');
+                infoHeader.classList.add('d-none');
+                return;
+            }
+            
             // --- Lógica de inicialización de evaluaciones ---
             if (!appData.evaluations[groupId]) appData.evaluations[groupId] = {};
             
@@ -1144,14 +1886,14 @@
             const evaluationsForChecklist = appData.evaluations[groupId][checklistId];
             
             // ************ LIMPIEZA DE COLORES: NO ES NECESARIA PORQUE EL RENDERIZADO ES CONDICIONAL ************
-            // La limpieza se maneja en el paso 4 y 5 de la iteración de estudiantes (más abajo)
-            // Ya no se limpia el modelo globalmente si no hay evaluaciones, solo se comprueba el score.
-            // ************************************************************
 
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
             const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
 
             // --- RENDERIZAR INFO HEADER ---
+            // Obtener peso de la categoría
+            const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+
             infoHeader.innerHTML = `
                 <h5 class="fw-bold mb-3 text-primary">LISTA DE COTEJO PARA EVALUAR: ${checklist.name.toUpperCase()}</h5>
                 <div class="row g-2 small">
@@ -1161,7 +1903,7 @@
                     </div>
                     <div class="col-md-6">
                         <p class="mb-1"><strong>Grupo:</strong> ${group.name}</p>
-                        <p class="mb-1"><strong>Sección:</strong> ${group.section}</p>
+                        <p class="mb-1"><strong>Categoría:</strong> ${checklist.linkedCategory} (${categoryWeight}%)</p>
                     </div>
                 </div>
             `;
@@ -1178,7 +1920,7 @@
                                     <label class="form-check-label" for="check-all-students-header">Estudiante</label>
                                 </div>
                             </th>
-                            ${checklist.criteria.map(c => `<th style="min-width: 250px;">${c}</th>`).join('')}
+                            ${checklist.criteria.map(c => c !== '---' ? `<th style="min-width: 250px;">${c}</th>` : `<th style="background-color: #ddd; min-width: 10px;"></th>`).join('')}
                             <th class="table-secondary" style="min-width: 100px;">Puntaje Total</th>
                             <th class="table-secondary" style="min-width: 100px;">Promedio</th>
                             <th class="table-secondary" style="min-width: 150px;">Nivel de Desempeño</th>
@@ -1198,9 +1940,13 @@
                 evaluationsForChecklist[student.id] = studentEvals;
 
 
-                const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
-                const criteriaCount = checklist.criteria.length;
-                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+                const validCriteriaCount = checklist.criteria.filter(c => c !== '---').length;
+                const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+                
+                const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                const criteriaCount = validCriteriaCount;
+                // CORRECCIÓN CÁLCULO: Promedio = Puntaje Total / Número de Criterios (Total Score / Count)
+                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0; 
                 const performance = getPerformanceLevel(average);
                 
                 // 1. Determinar si el alumno fue evaluado (al menos un score > 0)
@@ -1233,14 +1979,26 @@
                 tableHtml += `
                     <tr data-student-id="${student.id}" class="student-row group-evaluated-row">
                         <td class="text-start" ${nameCellColorStyle}>
-                            <div class="form-check larger-checkbox">
-                                <input class="form-check-input student-checkbox ${checkClass}" type="checkbox" id="student-check-${student.id}" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()" ${groupColor ? checkStyle : ''}>
-                                <label class="form-check-label text-truncate" for="student-check-${student.id}">
-                                    ${student.name} ${checkIcon}
-                                </label>
+                            <div class="student-name-cell">
+                                <div class="form-check larger-checkbox me-2">
+                                    <input class="form-check-input student-checkbox ${checkClass}" type="checkbox" id="student-check-${student.id}" data-student-id="${student.id}" onchange="checkGroupEvaluationReadiness()" ${groupColor ? checkStyle : ''}>
+                                    <label class="form-check-label text-truncate" for="student-check-${student.id}" style="max-width: 100px;">
+                                        ${student.name} ${checkIcon}
+                                    </label>
+                                </div>
+                                <!-- MODIFICACIÓN 2: QUITAR TEXTO Y AÑADIR ICONO ✍🏼 AGRANDADO -->
+                                <button class="btn btn-sm btn-light quick-eval-btn rounded-pill" 
+                                        data-student-id="${student.id}" 
+                                        onclick="prepareQuickEvaluation(event, '${student.id}')">
+                                    <span class="quick-eval-icon">✍🏼</span>
+                                </button>
                             </div>
                         </td>
-                        ${checklist.criteria.map((_, criterionIndex) => {
+                        ${checklist.criteria.map((criterion, criterionIndex) => {
+                            if (criterion === '---') {
+                                return `<td style="background-color: #f4f4f4;"></td>`;
+                            }
+                            
                             const currentScore = studentEvals[criterionIndex] || 0;
 
                             return `
@@ -1255,7 +2013,8 @@
                                                     data-level-name="${level.name}"
                                                     data-level-class="${level.colorClass}"
                                                     onclick="setScoreFromCell(this, '${student.id}', ${criterionIndex}, '${groupId}', '${checklistId}')">
-                                                    ${level.name.split(' ')[0]} (${level.score})
+                                                    ${level.name} (${level.score})
+						   
                                                 </button>
                                             `;
                                         }).join('')}
@@ -1285,32 +2044,24 @@
             container.innerHTML = tableHtml;
             evaluationOptions.classList.remove('d-none');
             checkGroupEvaluationReadiness();
+            
+            // Forzar la re-ejecución de la búsqueda si había texto
+            document.getElementById('student-search').dispatchEvent(new Event('keyup'));
         }
         
-        // Función auxiliar para actualizar el icono de evaluación individual
-        function updateEvaluationCheckIcon(studentId, row) {
-            const groupId = document.getElementById('select-group').value;
-            const checklistId = document.getElementById('select-checklist').value;
-
-            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
-            const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
-            
-            const label = row.querySelector('.form-check-label');
-            const nameText = label.textContent.replace(/\s<i.*?<\/i>$/, '').trim(); // Eliminar check existente
-            
-            if (totalScore > 0) {
-                label.innerHTML = `${nameText} <i class="bi bi-check-circle-fill evaluated-check"></i>`;
-            } else {
-                label.innerHTML = nameText;
-            }
-        }
-
-
         function updateStudentResults(studentId, groupId, checklistId) {
-            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
-            const criteriaCount = studentEvals.length;
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            const checklist = appData.checklists.find(c => c.id === checklistId);
             
-            const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
+            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
+            const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+            
+            const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+            
+            const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+            const criteriaCount = evaluatedScores.length;
+
+            // CORRECCIÓN CÁLCULO: Promedio = Puntaje Total / Número de Criterios (Total Score / Count)
             const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
             const performance = getPerformanceLevel(average);
 
@@ -1326,8 +2077,27 @@
                 // Actualizar el icono de check de evaluación individual
                 updateEvaluationCheckIcon(studentId, row);
                 
+                // ************ FIX DE REFLEJO VISUAL EN CELDAS INDIVIDUALES ************
+                const scoreCells = row.querySelectorAll('td[data-criterion-index]');
+
+                scoreCells.forEach(cell => {
+                    const criterionIndex = parseInt(cell.dataset.criterionIndex, 10);
+                    const score = studentEvals[criterionIndex] || 0; // Usar el puntaje del modelo
+
+                    cell.querySelectorAll('.cell-score-btn').forEach(btn => {
+                        const btnScore = parseInt(btn.dataset.score, 10);
+                        
+                        if (btnScore === score) {
+                            btn.classList.add('active-score');
+                        } else {
+                            btn.classList.remove('active-score');
+                        }
+                    });
+                });
+                // **********************************************************************
+                
                 // ************ LÓGICA DE ACTUALIZACIÓN DE COLOR INDIVIDUAL ************
-                const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+                const studentData = group.students.find(s => s.id === studentId);
                 const isEvaluated = totalScore > 0;
                 
                 if (studentData) {
@@ -1340,7 +2110,8 @@
                         nameCell.style.backgroundColor = '';
                         checkbox.removeAttribute('style');
                         checkbox.classList.remove('group-colored');
-                        // No eliminamos el color del modelo, solo dejamos de mostrarlo.
+                        // Si se limpia el score, eliminamos el color del mapa de groupEvalColors para esta checklist
+                        delete studentData.groupEvalColors[checklistId];
                     } else if (groupColor) {
                         // Si está evaluado y tiene un color de grupo asignado, lo aplicamos (esto es para asegurar que si se evalúa
                         // individualmente un estudiante previamente grupal, se mantiene el color si se cambia el score pero no se borra la evaluación).
@@ -1377,7 +2148,6 @@
             
             if (studentRow && studentData) {
                 // Lógica de limpieza: Cuando se evalúa individualmente, rompemos el vínculo visual de la evaluación grupal
-                // (excepto si el puntaje total sigue siendo > 0 y ya tenía un color asignado, lo cual se maneja en updateStudentResults)
                 if (score === 0) {
                     // Si el puntaje es 0, limpiamos inmediatamente los estilos para la celda del nombre/checkbox
                     studentRow.querySelector('td:first-child').style.backgroundColor = '';
@@ -1415,7 +2185,17 @@
             const groupEvaluateBtn = document.getElementById('group-evaluate-btn');
             const checkAllStudentsHeader = document.getElementById('check-all-students-header');
             
+            // Habilitar/Deshabilitar el botón de Evaluación Grupal
             groupEvaluateBtn.disabled = checkedStudents === 0;
+
+            // Cambiar color del botón si hay estudiantes seleccionados (NUEVO)
+            if (checkedStudents > 0) {
+                groupEvaluateBtn.classList.remove('btn-secondary');
+                groupEvaluateBtn.classList.add('btn-success');
+            } else {
+                groupEvaluateBtn.classList.remove('btn-success');
+                groupEvaluateBtn.classList.add('btn-secondary');
+            }
             
             const totalStudents = document.querySelectorAll('.student-checkbox').length;
             const checkAllStudentsMain = document.getElementById('check-all-students');
@@ -1446,39 +2226,93 @@
             container.dataset.score = score;
         }
 
+        // Variable global para almacenar el contexto de evaluación rápida (NUEVO)
+        let quickEvalTargetStudentId = null; 
 
-        // Inicializar modal de evaluación grupal (Renderiza la matriz por CRITERIO, ahora solo los botones de nivel)
-        document.getElementById('groupEvaluationModal').addEventListener('show.bs.modal', () => {
+        // NUEVA FUNCIÓN: Prepara el modal para evaluación rápida individual o grupal
+        function prepareQuickEvaluation(event, studentId = null) {
+            if (event) event.stopPropagation();
+            
+            const modalElement = document.getElementById('groupEvaluationModal');
+            // Usamos getOrCreateInstance para asegurarnos de que el modal se muestre correctamente sin conflictos de data-attributes.
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+
+            if (studentId) {
+                // Modo Evaluación Rápida Individual
+                quickEvalTargetStudentId = studentId;
+                
+                const student = appData.studentGroups.find(g => g.id === document.getElementById('select-group').value)?.students.find(s => s.id === quickEvalTargetStudentId);
+                document.getElementById('groupEvaluationModalLabel').textContent = `Evaluación Rápida: ${student ? student.name : 'Estudiante'}`;
+                
+                // Mostrar modal solo si el grupo y la lista están seleccionados (soluciona el problema del doble clic)
+                if (document.getElementById('select-group').value && document.getElementById('select-checklist').value) {
+                     modalInstance.show(); 
+                } else {
+                    showToast('Selecciona un Grupo y una Lista de Cotejo primero.', 'warning');
+                }
+                
+            } else {
+                // Modo Evaluación Grupal (normal)
+                quickEvalTargetStudentId = null; // ** CORRECCIÓN: Asegurarse de que sea nulo para el modo grupal **
+                document.getElementById('groupEvaluationModalLabel').textContent = 'Evaluación Rápida por Criterio';
+                
+                const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
+                if (selectedStudents.length === 0) {
+                    showToast('Selecciona al menos un estudiante.', 'warning');
+                    return;
+                }
+                modalInstance.show();
+            }
+        }
+        
+        document.getElementById('groupEvaluationModal').addEventListener('show.bs.modal', (e) => {
             const checklistId = document.getElementById('select-checklist').value;
             const checklist = appData.checklists.find(c => c.id === checklistId);
-            
-            // Obtener el ID del grupo y los estudiantes seleccionados (necesario para el guardado)
-            const selectedStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked'))
-                .map(cb => cb.dataset.studentId);
+            const groupId = document.getElementById('select-group').value;
+
+            // Determinar qué IDs usar: el estudiante objetivo (individual) o los seleccionados (grupal)
+            let targetStudentIds;
+            let modalTitle;
+            let firstStudentId; // ID del estudiante para preseleccionar la matriz
+
+            if (quickEvalTargetStudentId) {
+                // Modo Individual: Usa el estudiante objetivo
+                targetStudentIds = [quickEvalTargetStudentId];
+                firstStudentId = quickEvalTargetStudentId;
+                const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === quickEvalTargetStudentId);
+                modalTitle = `Evaluación Rápida: ${student ? student.name : 'Estudiante'}`;
+            } else {
+                // Modo Grupal: Usa los estudiantes seleccionados
+                targetStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
+                firstStudentId = targetStudentIds[0]; // Usar el primero de los seleccionados
+                modalTitle = 'Evaluación Rápida por Criterio';
+            }
+
+            document.getElementById('groupEvaluationModalLabel').textContent = modalTitle;
             
             const matrixContainer = document.getElementById('group-evaluation-matrix-container');
             const applyButton = document.getElementById('apply-group-evaluation');
 
-            if (selectedStudentIds.length === 0) {
-                matrixContainer.innerHTML = '<p class="text-center text-danger m-4">No has seleccionado ningún estudiante. Por favor, selecciona al menos uno en la tabla principal.</p>';
+            if (targetStudentIds.length === 0) {
+                matrixContainer.innerHTML = '<p class="text-center text-danger m-4">No hay estudiantes seleccionados.</p>';
                 applyButton.disabled = true;
                 return;
             }
             applyButton.disabled = false;
             
             let matrixHtml = '';
-
+            
             // Iterar sobre cada CRITERIO para crear una sección de evaluación rápida
             checklist.criteria.forEach((criterionName, criterionIndex) => {
                 
-                // Buscar el score más común entre los estudiantes seleccionados para este criterio
-                // Esto es solo para pre-seleccionar un valor en la vista
-                const groupId = document.getElementById('select-group').value;
-                const scores = selectedStudentIds
-                    .map(sId => appData.evaluations[groupId]?.[checklistId]?.[sId]?.[criterionIndex] || 0)
-                    .filter(score => score > 0);
+                if (criterionName === '---') {
+                    // Ignorar separadores en el modal
+                    return;
+                }
                 
-                const initialScore = scores.length > 0 ? scores[0] : 0; // Solo tomamos el primer score si existe, para la vista
+                // Obtener el score del primer estudiante (si existe) para el valor inicial de los botones
+                // Usamos firstStudentId, que es el estudiante clave para la preselección visual.
+                const initialScore = appData.evaluations[groupId]?.[checklistId]?.[firstStudentId]?.[criterionIndex] || 0;
                 
                 matrixHtml += `
                     <div class="criterion-group border mb-4 p-3 shadow-sm" 
@@ -1516,19 +2350,24 @@
             const groupId = document.getElementById('select-group').value;
             const checklistId = document.getElementById('select-checklist').value;
             const groupData = appData.studentGroups.find(g => g.id === groupId);
-            
-            // 1. Obtener los IDs de los estudiantes seleccionados
-            const selectedStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked'))
-                .map(cb => cb.dataset.studentId);
+            const isIndividualEval = quickEvalTargetStudentId !== null;
 
-            // 2. Obtener el siguiente color disponible (ACTUALIZADO: NO guarda en el grupo, solo lo obtiene)
-            const colorData = getNextGroupColor(); // Llama a la función sin ID de grupo
-            const assignedColor = colorData.hex; // Color que no se ha usado
+            // 1. Obtener los IDs de los estudiantes a aplicar
+            // Usamos quickEvalTargetStudentId para individual, que ya está seteado.
+            const targetStudentIds = isIndividualEval 
+                ? [quickEvalTargetStudentId]
+                : Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
+            
+            // 2. Obtener el siguiente color disponible (SOLO si es una evaluación GRUPAL)
+            let assignedColor = null;
+            if (!isIndividualEval) {
+                assignedColor = getNextGroupColor().hex; // Color que no se ha usado
+            }
             
             // 3. Seleccionar todos los contenedores de criterio
             const criterionGroups = document.querySelectorAll('#group-evaluation-matrix-container .criterion-group');
             
-            if (criterionGroups.length === 0 || selectedStudentIds.length === 0) {
+            if (criterionGroups.length === 0 || targetStudentIds.length === 0) {
                 showToast('No hay datos o estudiantes seleccionados para guardar.', 'danger');
                 return;
             }
@@ -1536,53 +2375,55 @@
             const checklist = appData.checklists.find(c => c.id === checklistId);
             if (!checklist) return;
             
-            // 4. Recorrer los criterios y aplicar el score a todos los estudiantes seleccionados
+            // 4. Recorrer los criterios y aplicar el score a todos los estudiantes objetivo
             criterionGroups.forEach(groupContainer => {
+                // FIX: Cambiar groupContainer.dataset.criterion-index a groupContainer.dataset.criterionIndex
                 const criterionIndex = parseInt(groupContainer.dataset.criterionIndex, 10);
                 const score = parseInt(groupContainer.dataset.score, 10);
                 
-                selectedStudentIds.forEach(studentId => {
+                targetStudentIds.forEach(studentId => {
                     // Actualizar el modelo (appData)
                     if (!appData.evaluations[groupId][checklistId][studentId]) {
                         appData.evaluations[groupId][checklistId][studentId] = new Array(checklist.criteria.length).fill(0);
                     }
+                    // Actualización del score en el modelo
                     appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
                     
-                    // 5. Asignar el color al estudiante individual para ESTA LISTA DE COTEJO
+                    // 5. Gestión del Color (Solo para Evaluación Grupal o si el score es 0)
                     const studentData = groupData.students.find(s => s.id === studentId);
+                    
                     if (studentData) {
-                        studentData.groupEvalColors[checklistId] = assignedColor; // Guarda el color en el mapa
-                    }
-                    
-                    // Actualizar la vista de la tabla principal (botón y resultados)
-                    const buttonContainer = document.querySelector(`td[data-student-id="${studentId}"][data-criterion-index="${criterionIndex}"] .d-flex`);
-                    
-                    if (buttonContainer) {
-                        buttonContainer.querySelectorAll('.cell-score-btn').forEach(btn => {
-                            btn.classList.remove('active-score');
-                        });
+                        const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
                         
-                        // Buscar el botón correspondiente al score aplicado para marcarlo
-                        const targetButton = buttonContainer.querySelector(`.cell-score-btn[data-score="${score}"]`);
-                        if(targetButton) {
-                            targetButton.classList.add('active-score');
+                        if (!isIndividualEval) {
+                            // Si es GRUPAL, asignamos el nuevo color
+                            studentData.groupEvalColors[checklistId] = assignedColor; 
+
+                            if (studentRow) {
+                                studentRow.querySelector('td:first-child').style.backgroundColor = assignedColor;
+                                const checkbox = studentRow.querySelector('.student-checkbox');
+                                if (checkbox) {
+                                    checkbox.style.backgroundColor = assignedColor;
+                                    checkbox.style.borderColor = assignedColor;
+                                    checkbox.classList.add('group-colored');
+                                }
+                            }
+
+                        } else if (score === 0) {
+                            // Si es INDIVIDUAL y el score es 0, forzamos la limpieza del color de grupo
+                            delete studentData.groupEvalColors[checklistId];
+                            if (studentRow) {
+                                studentRow.querySelector('td:first-child').style.backgroundColor = '';
+                                const checkbox = studentRow.querySelector('.student-checkbox');
+                                if (checkbox) {
+                                    checkbox.removeAttribute('style');
+                                    checkbox.classList.remove('group-colored');
+                                }
+                            }
                         }
                     }
-
-                    // 6. Aplicar el color de fondo a la celda del nombre (inline style)
-                    const studentRow = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
-                    if (studentRow) {
-                        studentRow.querySelector('td:first-child').style.backgroundColor = assignedColor;
-                        
-                        // Aplicar color al checkbox (inline style)
-                        const checkbox = studentRow.querySelector('.student-checkbox');
-                        if (checkbox) {
-                             checkbox.style.backgroundColor = assignedColor;
-                             checkbox.style.borderColor = assignedColor;
-                             checkbox.classList.add('group-colored'); // Asegura el color del checkmark
-                        }
-                    }
-
+                    
+                    // 6. Actualizar vista de resultados (la tabla principal)
                     updateStudentResults(studentId, groupId, checklistId);
                 });
             });
@@ -1594,7 +2435,11 @@
             modal.hide();
 
             // --- NUEVO: Deseleccionar estudiantes después de guardar ---
-            clearStudentSelections();
+            // Solo se deselecciona si NO fue una evaluación individual, para no interferir con la selección de grupo.
+            if (!isIndividualEval) {
+                clearStudentSelections();
+            }
+            quickEvalTargetStudentId = null; // Limpiar el ID de estudiante objetivo
         });
 
         // --- NUEVA FUNCIÓN PARA DESELECCIONAR ESTUDIANTES ---
@@ -1610,6 +2455,29 @@
         // **********************************************
         // MÓDULO DE REPORTES PDF (MODIFICADO Y ESTILIZADO)
         // **********************************************
+        
+        // ** NUEVA FUNCIÓN: Filtra y actualiza el selector de Listas de Cotejo para Reportes **
+        function updateReportChecklistSelector(groupId, selectedChecklistId = null) {
+            const selectChecklist = document.getElementById('report-checklist');
+            selectChecklist.innerHTML = '<option value="">-- Seleccionar Lista de Cotejo --</option>';
+
+            if (groupId) {
+                // Filtrar solo las listas cuyo linkedGroupId coincida con el groupId seleccionado
+                const filteredChecklists = appData.checklists.filter(c => c.linkedGroupId === groupId);
+                
+                filteredChecklists.forEach(checklist => {
+                    selectChecklist.innerHTML += `<option value="${checklist.id}">${checklist.name} (${checklist.linkedCategory})</option>`;
+                });
+                
+                // Intentar mantener la selección si la lista todavía existe en este grupo
+                if (selectedChecklistId && filteredChecklists.some(c => c.id === selectedChecklistId)) {
+                    selectChecklist.value = selectedChecklistId;
+                } else {
+                    selectChecklist.value = "";
+                }
+            }
+        }
+
 
         function renderReportSelectors() {
             const selectGroup = document.getElementById('report-group');
@@ -1620,13 +2488,57 @@
                 selectGroup.innerHTML += `<option value="${group.id}">${group.name} (${group.section})</option>`;
             });
 
+            // CORRECCIÓN: Inicializar la lista de cotejo vacía (se llenará al seleccionar grupo)
             selectChecklist.innerHTML = '<option value="">-- Seleccionar Lista de Cotejo --</option>';
-            appData.checklists.forEach(checklist => {
-                selectChecklist.innerHTML += `<option value="${checklist.id}">${checklist.name}</option>`;
+            
+            // ** Listener para el cambio de Grupo en Reportes **
+            document.getElementById('report-group').addEventListener('change', (e) => {
+                const groupId = e.target.value;
+                updateReportChecklistSelector(groupId); // Filtrar listas
+                checkReportReadiness(); // Revisa si los botones deben habilitarse
             });
             
+            // ** Listener para el cambio de Lista de Cotejo en Reportes **
+            document.getElementById('report-checklist').addEventListener('change', checkReportReadiness);
+
+            
+            // Eliminar listeners antiguos (si existen) y añadir los nuevos
+            document.getElementById('generate-detailed-report').removeEventListener('click', handleReportGeneration);
+            document.getElementById('generate-summary-report').removeEventListener('click', handleReportGeneration);
+            document.getElementById('generate-consolidated-report').removeEventListener('click', handleReportGeneration);
+            
+            document.getElementById('generate-detailed-report').addEventListener('click', () => handleReportGeneration('detailed'));
+            document.getElementById('generate-summary-report').addEventListener('click', () => handleReportGeneration('summary'));
+            document.getElementById('generate-consolidated-report').addEventListener('click', () => handleReportGeneration('consolidated'));
+            
+            // Si hay un grupo preseleccionado (al recargar), cargamos las listas correspondientes
+            if (selectGroup.value) {
+                updateReportChecklistSelector(selectGroup.value);
+            }
+
             checkReportReadiness();
         }
+        
+        // Función unificada para manejar la generación de reportes
+        function handleReportGeneration(type) {
+            const groupId = document.getElementById('report-group').value;
+            const checklistId = document.getElementById('report-checklist').value;
+
+            if (type === 'consolidated') {
+                if (!groupId) {
+                    showToast('Selecciona un Grupo para el reporte consolidado.', 'warning');
+                    return;
+                }
+                generatePDFReport(groupId, null, type);
+            } else {
+                if (!groupId || !checklistId) {
+                    showToast('Selecciona un Grupo y una Lista de Cotejo.', 'warning');
+                    return;
+                }
+                generatePDFReport(groupId, checklistId, type);
+            }
+        }
+
         
         // --- FUNCIÓN PARA GENERAR VISTA PREVIA HTML DEL REPORTE RESUMIDO ---
         function renderSummaryPreview() {
@@ -1649,12 +2561,16 @@
             }
 
             const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
-            const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
+            const totalMaxScore = maxScorePerCriterion * checklist.criteria.filter(c => c !== '---').length;
 
             const allStudentsData = group.students.map(student => {
                 const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
-                const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
-                const criteriaCount = checklist.criteria.length;
+                const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+                
+                const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                const criteriaCount = evaluatedScores.length;
+
+                // CORRECCIÓN CÁLCULO: Promedio = Puntaje Total / Número de Criterios (Total Score / Count)
                 const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
                 const performance = getPerformanceLevel(average);
                 const performanceClass = performance.class.replace('performance-', 'bg-');
@@ -1680,7 +2596,7 @@
             
             const maxAvg = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
             const finalNormalizedAverage = totalStudentsEvaluated > 0 
-                ? totalGroupScore / (checklist.criteria.length * totalStudentsEvaluated) 
+                ? allStudentsData.filter(d => d.total > 0).reduce((sum, d) => sum + parseFloat(d.average), 0) / totalStudentsEvaluated
                 : 0;
 
             const groupPerformance = getPerformanceLevel(finalNormalizedAverage);
@@ -1726,9 +2642,12 @@
             const groupId = document.getElementById('report-group').value;
             const checklistId = document.getElementById('report-checklist').value;
             const ready = groupId && checklistId;
-            
+            const groupSelected = groupId; // Solo el grupo es necesario para el consolidado
+
             document.getElementById('generate-detailed-report').disabled = !ready;
             document.getElementById('generate-summary-report').disabled = !ready;
+            // Habilitar el consolidado si solo hay un grupo seleccionado
+            document.getElementById('generate-consolidated-report').disabled = !groupSelected;
             
             // --- LLAMADA PARA ACTUALIZAR LA VISTA PREVIA ---
             renderSummaryPreview();
@@ -1737,32 +2656,165 @@
         document.getElementById('report-group').addEventListener('change', checkReportReadiness);
         document.getElementById('report-checklist').addEventListener('change', checkReportReadiness);
         
-        document.getElementById('generate-detailed-report').addEventListener('click', () => {
-            generatePDFReport(
-                document.getElementById('report-group').value,
-                document.getElementById('report-checklist').value,
-                'detailed'
-            );
-        });
+        // ELIMINACIÓN DE LISTENERS ANTIGUOS QUE PODRÍAN CAUSAR ERRORES: 
+        // document.getElementById('generate-detailed-report').addEventListener('click', () => { ... });
+        // document.getElementById('generate-summary-report').addEventListener('click', () => { ... });
+        // document.getElementById('generate-consolidated-report').addEventListener('click', () => { ... });
+        
+        // La asignación de listeners se ha movido a renderReportSelectors()
 
-        document.getElementById('generate-summary-report').addEventListener('click', () => {
-            generatePDFReport(
-                document.getElementById('report-group').value,
-                document.getElementById('report-checklist').value,
-                'summary'
-            );
-        });
+        // **********************************************
+        // NUEVAS FUNCIONES DE CÁLCULO (SITUACIÓN FINAL / VIGESIMAL)
+        // **********************************************
+
+        function mapToVigesimal(finalScore) {
+            const score = parseFloat(finalScore.toFixed(1));
+            
+            if (score <= 1.1) return 1;
+            if (score <= 1.3) return 2;
+            if (score <= 1.5) return 3;
+            if (score <= 1.7) return 4;
+            if (score <= 1.9) return 5;
+            if (score <= 2.1) return 6;
+            if (score <= 2.3) return 7;
+            if (score <= 2.5) return 8;
+            if (score <= 2.7) return 9;
+            if (score <= 2.9) return 10;
+            if (score <= 3.2) return 11;
+            if (score <= 3.5) return 12;
+            if (score <= 3.7) return 13;
+            if (score <= 3.9) return 14;
+            if (score <= 4.1) return 15;
+            if (score <= 4.3) return 16;
+            if (score <= 4.5) return 17;
+            if (score <= 4.7) return 18;
+            if (score <= 4.9) return 19;
+            if (score >= 5.0) return 20;
+
+            return 0; // Por defecto si hay un error o es negativo
+        }
+
+        function calculateFinalConsolidatedResults(groupId, studentId) {
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            const evaluations = appData.evaluations[groupId];
+            
+            // 1. Mapear pesos de categorías del grupo
+            const categoryMap = {}; // { categoryName: weight }
+            let usePonderation = false;
+            
+            if (group && group.categories && group.categories.list.length > 0) {
+                group.categories.list.forEach(cat => {
+                    categoryMap[cat.name] = cat.weight / 100; // Convertir a decimal
+                });
+                const totalWeight = Object.values(categoryMap).reduce((sum, w) => sum + w, 0);
+                if (Math.abs(totalWeight - 1.0) < 0.001) {
+                    usePonderation = true;
+                }
+            }
+
+            // Recoger todas las notas Base 5 obtenidas por el estudiante, agrupadas por categoría
+            let categoryNotesData = {}; // { categoryName: { notes: [note1, note2, ...], weight: 0.3, checklistsCount: 2 } }
+
+            // 2. Iterar sobre todas las evaluaciones para construir categoryNotesData
+            Object.keys(evaluations).forEach(checklistId => {
+                const checklist = appData.checklists.find(c => c.id === checklistId);
+                const studentEvals = evaluations[checklistId][studentId];
+
+                if (checklist && studentEvals) {
+                    const validCriteriaCount = checklist.criteria.filter(c => c !== '---').length;
+                    const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+                    
+                    const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                    const noteBase5 = validCriteriaCount > 0 ? totalScore / validCriteriaCount : 0;
+
+                    if (noteBase5 > 0) {
+                        const categoryName = checklist.linkedCategory || 'GENERAL';
+                        const categoryWeight = categoryMap[categoryName] || 0; // Usar 0 si no está en el mapa, para no contar peso
+                        
+                        if (!categoryNotesData[categoryName]) {
+                            categoryNotesData[categoryName] = { 
+                                notes: [], 
+                                totalCategoryWeight: categoryWeight,
+                                checklistsCount: 0
+                            };
+                        }
+                        categoryNotesData[categoryName].notes.push(noteBase5);
+                        categoryNotesData[categoryName].checklistsCount++;
+                    }
+                }
+            });
+
+            let finalScore = 0;
+            let finalPerformance = { name: 'N/A', class: 'performance-previo' };
+            
+            const totalEvaluatedChecklists = Object.values(categoryNotesData).reduce((sum, data) => sum + data.checklistsCount, 0);
+
+            if (totalEvaluatedChecklists === 0) {
+                return { finalScore: 0, vigesimal: 0, performance: getPerformanceLevel(0).name };
+            }
+
+            if (usePonderation) {
+                // A. FÓRMULA PONDERADA CON DISTRIBUCIÓN DE PESO (CORREGIDA)
+                let weightedSumOfNotes = 0;
+                
+                Object.entries(categoryNotesData).forEach(([categoryName, data]) => {
+                    if (data.notes.length > 0) {
+                        // 1. Peso distribuido: Peso total de la categoría / Número de listas evaluadas en esa categoría.
+                        const distributedWeight = data.totalCategoryWeight / data.checklistsCount; 
+                        
+                        // 2. Sumar las notas ponderadas
+                        data.notes.forEach(note => {
+                            // Sumamos (Nota Base 5 * Peso Distribuido por Nota)
+                            weightedSumOfNotes += note * distributedWeight;
+                        });
+                    }
+                });
+                
+                // La suma de los pesos distribuidos debería ser 1.0 (100%) si todas las categorías fueron evaluadas.
+                // Como aseguramos que usePonderation es true si suma 100%, la weightedSumOfNotes ya es la Situación Final.
+                finalScore = weightedSumOfNotes; 
+
+            } else {
+                // B. FÓRMULA SIMPLE (PROMEDIO DE TODAS las notas Base 5 de todas las listas)
+                const allNotes = Object.values(categoryNotesData).flatMap(data => data.notes);
+                const sumOfNotes = allNotes.reduce((sum, note) => sum + note, 0);
+                finalScore = sumOfNotes / allNotes.length;
+            }
+
+            // 2. Mapeo a Desempeño
+            finalPerformance = getPerformanceLevel(finalScore);
+
+            // 3. Mapeo a Vigesimal
+            const vigesimal = mapToVigesimal(finalScore);
+
+            return {
+                finalScore: finalScore,
+                vigesimal: vigesimal,
+                performance: finalPerformance.name
+            };
+        }
+
 
         function generatePDFReport(groupId, checklistId, type) {
             const group = appData.studentGroups.find(g => g.id === groupId);
-            const checklist = appData.checklists.find(c => c.id === checklistId);
-            const evaluations = appData.evaluations[groupId] ? appData.evaluations[groupId][checklistId] : {};
+            const checklist = checklistId ? appData.checklists.find(c => c.id === checklistId) : null;
+            const evaluations = appData.evaluations[groupId];
 
-            if (!group || !checklist || !evaluations) {
-                showToast('Datos de grupo o lista de cotejo faltantes para el reporte.', 'danger');
+            if (!group || !evaluations || (type !== 'consolidated' && !checklist)) {
+                showToast('Datos faltantes para el reporte.', 'danger');
                 return;
             }
             
+            // --- INICIALIZACIÓN GLOBAL DE JSDPF ---
+            const { jsPDF } = window.jspdf;
+            const orientation = (type === 'consolidated') ? 'l' : 'p'; 
+            const doc = new jsPDF(orientation, 'mm', 'a4'); // Se define 'doc' aquí
+            
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const center = pageWidth / 2;
+            let y = 15; // Se define 'y' aquí
+            // --- FIN INICIALIZACIÓN GLOBAL ---
+
             // --- CONSTANTES DE ESTILO PARA PDF ---
             const PRIMARY_BLUE = [15, 76, 129]; 
             const SECONDARY_GRAY = [108, 117, 125];
@@ -1770,287 +2822,448 @@
             const ACCENT_GREEN = [40, 167, 69];
             const ACCENT_PURPLE = [111, 66, 193];
             const BLACK = [0, 0, 0]; // Color de texto negro
-
-            // Inicializar el documento PDF con la orientación correcta
-            const orientation = type === 'detailed' ? 'p' : 'l'; // 'p' para vertical, 'l' para horizontal
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF(orientation, 'mm', 'a4');
-            
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const center = pageWidth / 2;
-            
-            // --- CÁLCULOS DE DATOS ---
-            const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
-            const totalMaxScore = maxScorePerCriterion * checklist.criteria.length;
-
-            const allStudentsData = group.students.map(student => {
-                const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
-                const totalScore = studentEvals.reduce((sum, score) => sum + (score || 0), 0);
-                const criteriaCount = checklist.criteria.length;
-                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                const performance = getPerformanceLevel(average);
-                const performanceName = performance.name === 'Proceso' ? 'En proceso' : performance.name;
-
-                return {
-                    id: student.id,
-                    name: student.name,
-                    evals: studentEvals,
-                    total: totalScore,
-                    average: average.toFixed(1),
-                    performance: performanceName
-                };
-            });
             
             const today = new Date();
             const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
             const formattedDate = today.toLocaleDateString('es-ES', dateOptions);
 
-            let fileName = `${type}_reporte_${group.name.replace(/\s/g, '_')}_${checklist.name.replace(/\s/g, '_')}.pdf`;
-            
-            if (type === 'detailed') {
-                // *************************************************************
-                // REPORTE DETALLADO INDIVIDUAL (ORIENTACIÓN VERTICAL)
-                // *************************************************************
+            // Función auxiliar para obtener el color del nivel de desempeño en formato RGB
+            function getPerformanceColorRGB(level) {
+                // Modificación para manejar la nomenclatura exacta (Proceso vs En proceso)
+                if (level.includes('Destacado')) return ACCENT_PURPLE;
+                if (level.includes('Logrado')) return ACCENT_GREEN;
+                if (level.includes('Proceso') || level.includes('En proceso')) return [255, 193, 7]; // Amarillo
+                if (level.includes('Inicio')) return [23, 162, 184]; // Celeste
+                if (level.includes('Previo')) return ACCENT_RED;
+                return [240, 240, 240];
+            }
 
-                allStudentsData.forEach((studentData, index) => {
-                    if (index > 0) {
-                        doc.addPage();
-                    }
+
+            if (type === 'consolidated') {
+                // *************************************************************
+                // REPORTE CONSOLIDADO POR GRUPO (NUEVO)
+                // *************************************************************
+                
+                // 1. Obtener todas las listas evaluadas para este grupo
+                const evaluatedChecklists = Object.keys(evaluations)
+                    .map(id => appData.checklists.find(c => c.id === id))
+                    .filter(c => c !== undefined && c.linkedGroupId === groupId); // Solo listas vinculadas a este grupo
+
+                if (evaluatedChecklists.length === 0) {
+                    showToast('No hay evaluaciones guardadas para este grupo.', 'danger');
+                    return;
+                }
+                
+                // 2. Preparar el encabezado de la tabla
+                // Columna 'Sección' ha sido removida
+                let head = ['Estudiante'];
+                
+                // Añadir una columna por cada evaluación (Lista de Cotejo) - Promedio Base 5
+                evaluatedChecklists.forEach(cl => {
+                    const categoryWeight = group.categories.list.find(c => c.name === cl.linkedCategory)?.weight || 100;
+                    const checklistName = `${cl.name} (${categoryWeight}%)`;
+                    head.push(checklistName);
+                });
+
+                // Añadir columnas finales (MODIFICADAS)
+                head.push('Situación Final', 'Vigesimal', 'Nivel Desempeño');
+
+                // 3. Preparar el cuerpo y calcular resultados consolidados
+                let body = [];
+                
+                group.students.forEach(student => {
+                    // Columna 'Sección' removida
+                    let studentRow = [student.name];
+                    let notesBase5ByChecklist = []; // Para el cálculo ponderado final
+                    let totalScoreSum = 0; // Para la columna 'Total Pts' (puntaje total)
+
+                    // Llenar las columnas de evaluación individuales (por lista de cotejo)
+                    evaluatedChecklists.forEach(cl => {
+                        const studentEvals = evaluations[cl.id] ? evaluations[cl.id][student.id] : null;
+                        const validCriteriaCountCL = cl.criteria.filter(c => c !== '---').length;
+                        
+                        if (studentEvals) {
+                            const evaluatedScores = studentEvals.filter((_, index) => cl.criteria[index] !== '---');
+                            const currentScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                            
+                            // Nota Base 5 de esta evaluación (Promedio de la lista)
+                            const noteBase5 = validCriteriaCountCL > 0 ? currentScore / validCriteriaCountCL : 0; 
+
+                            // Suma del Puntaje Total (para la columna Total Pts)
+                            totalScoreSum += currentScore;
+                            
+                            // Guardar la nota base 5 para el cálculo final consolidado
+                            notesBase5ByChecklist.push({ checklistId: cl.id, note: noteBase5 });
+                            
+                            studentRow.push(noteBase5.toFixed(2)); // Nota Base 5 (2 decimales)
+                        } else {
+                            studentRow.push('N/A');
+                            notesBase5ByChecklist.push({ checklistId: cl.id, note: 0 }); // Nota 0 si no evaluado
+                        }
+                    });
+
+                    // 4. Calcular resultados finales CONSOLIDADOS (Situación Final, Vigesimal, Desempeño)
+                    const finalResults = calculateFinalConsolidatedResults(groupId, student.id);
                     
-                    let y = 15;
+                    studentRow.push(finalResults.finalScore.toFixed(1)); // Situación Final (REDONDEADO A 1 DECIMAL)
+                    studentRow.push(finalResults.vigesimal.toString()); // Vigesimal
+                    studentRow.push(finalResults.performance);         // Nivel Desempeño
+                    
+                    body.push(studentRow);
+                });
+
+                // 5. Generar PDF
+                doc.setFontSize(20);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+                doc.text(`Evalyms+ Reporte Consolidado`, center, y, { align: 'center' });
+                y += 5;
+
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+                doc.text(`Grupo: ${group.name} (${group.section})`, center, y, { align: 'center' });
+                y += 5;
+                // Agregamos datos del docente e institución al encabezado
+                doc.setFontSize(10);
+                doc.text(`Institución: ${appData.institution || 'N/A'} | Docente: ${appData.teacher || 'N/A'}`, center, y, { align: 'center' });
+                y += 5;
+                doc.text(`Fecha de Generación: ${formattedDate}`, center, y, { align: 'center' });
+                y += 8;
+
+                doc.autoTable({
+                    head: [head],
+                    body: body,
+                    startY: y,
+                    theme: 'grid',
+                    headStyles: { fillColor: PRIMARY_BLUE, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+                    styles: { fontSize: 8.5 },
+                    didParseCell: (data) => {
+                         const totalCols = data.row.raw.length;
+                         const isFinalCol = data.column.index === totalCols - 1;
+                         const isVigesimalCol = data.column.index === totalCols - 2;
+                         const isSituacionCol = data.column.index === totalCols - 3;
+
+                         if (data.section === 'body' && isFinalCol) { // Nivel Desempeño
+                            const level = data.cell.raw;
+                            data.cell.styles.fillColor = getPerformanceColorRGB(level);
+                            data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+                            data.cell.styles.fontStyle = 'bold'; 
+                         }
+                         if (data.section === 'body' && (isSituacionCol || isVigesimalCol)) {
+                            // Aplicar formato de puntaje final para las columnas de Situación Final y Vigesimal
+                            data.cell.styles.fontStyle = 'bold'; 
+                            data.cell.styles.fillColor = [220, 220, 220]; // Fondo gris suave
+                         }
+                    }
+                });
+
+                let finalY = doc.autoTable.previous.finalY + 5;
+                doc.setFontSize(8);
+                doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+                
+                // *********************************************************************************
+                // FÓRMULA DE CÁLCULO DE SITUACIÓN FINAL (ACTUALIZADA)
+                // *********************************************************************************
+                
+                const formulaText = group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1 
+                    ? 'La Situación Final (SF) se calcula como la sumatoria de [ (Promedio Base 5 por Lista) * (Peso Total de Categoría / # Listas en esa Categoría) ].'
+                    : 'La Situación Final (SF) se calcula como el promedio simple de las Notas Base 5 de todas las evaluaciones.';
+                
+                doc.text(`Fórmula de SF: ${formulaText}`, 10, finalY);
+                finalY += 4;
+                doc.text('Nota: El Puntaje y el Nivel de Desempeño de cada evaluación se basa en la Escala Base 5.', 10, finalY);
+                // *********************************************************************************
+                
+                doc.save(`Consolidado_${group.name.replace(/\s/g, '_')}.pdf`);
+                showToast(`Reporte Consolidado generado con éxito.`, 'success');
+                return;
+            }
+            
+            if (type === 'detailed' || type === 'summary') {
+                // --- CÁLCULOS ESTÁNDAR (SUMMARY / DETAILED) ---
+                const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+                const totalMaxScore = maxScorePerCriterion * checklist.criteria.filter(c => c !== '---').length;
+
+                const allStudentsData = group.students.map(student => {
+                    // *** CORRECCIÓN CLAVE: LEER PUNTUACIONES CORRECTAMENTE DEL MODELO ***
+                    // evaluations[checklistId]?.[student.id] -> Accede al arreglo de scores del estudiante
+                    const studentEvals = evaluations[checklistId]?.[student.id] || new Array(checklist.criteria.length).fill(0);
+                    // *******************************************************************
+                    
+                    const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+                    const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                    
+                    const criteriaCount = evaluatedScores.length; // Número de criterios válidos
+                    // CORRECCIÓN CÁLCULO: Promedio = Puntaje Total / Número de Criterios
+                    const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+                    const performance = getPerformanceLevel(average);
+                    // OBTENER EL NOMBRE EXACTO DEL NIVEL DE DESEMPEÑO
+                    const performanceName = performance.name;
+
+                    return {
+                        id: student.id,
+                        name: student.name,
+                        evals: studentEvals,
+                        total: totalScore,
+                        average: average.toFixed(1),
+                        performance: performanceName
+                    };
+                });
+                
+                let fileName = `${type}_reporte_${group.name.replace(/\s/g, '_')}_${checklist.name.replace(/\s/g, '_')}.pdf`;
+                
+                if (type === 'detailed') {
+                    // *************************************************************
+                    // REPORTE DETALLADO INDIVIDUAL (ORIENTACIÓN VERTICAL)
+                    // *************************************************************
+
+                    allStudentsData.forEach((studentData, index) => {
+                        if (index > 0) {
+                            doc.addPage();
+                            y = 15; // Resetear Y para la nueva página
+                        }
+                        
+                        // --- ENCABEZADO Y TÍTULO VISUAL ---
+                        doc.setFontSize(24);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+                        doc.text(`Evalyms+`, center, y, { align: 'center' });
+                        y += 5;
+
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'normal');
+                        doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+                        doc.text(`REPORTE DETALLADO INDIVIDUAL`, center, y, { align: 'center' });
+                        y += 10;
+                        
+                        // --- BLOQUE DE INFORMACIÓN ---
+                        const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+
+                        doc.setFontSize(10);
+                        doc.setTextColor(0, 0, 0); 
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+                        doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+                        doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
+                        
+                        doc.text(`Fecha: ${formattedDate}`, pageWidth - 10, y, { align: 'right' });
+                        doc.text(`Lista de Cotejo: ${checklist.name} (Categoría: ${checklist.linkedCategory} - ${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+                        y += 15;
+
+                        // Estudiante Destacado
+                        doc.setFontSize(14);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+                        doc.text(`Estudiante: ${studentData.name}`, 10, y); 
+                        y += 5;
+
+                        // Headers for the detailed checklist
+                        const criteriaHead = ['Criterio de Evaluación', 'Nivel Asignado', 'Puntaje'];
+                        const criteriaBody = [];
+                        
+                        checklist.criteria.forEach((criterion, i) => {
+                            if (criterion === '---') {
+                                criteriaBody.push(['', '----- SEPARADOR DE SECCIÓN -----', '']);
+                            } else {
+                                const score = studentData.evals[i] || 0;
+                                const level = checklist.levels.find(l => l.score === score);
+                                // Modificación: Usar el nombre exacto del nivel para el mapeo de color
+                                const levelName = level ? level.name : (score === 0 ? 'Previo al Inicio' : 'N/A');
+                                criteriaBody.push([criterion, levelName, score.toString()]);
+                            }
+                        });
+
+                        // Add checklist table
+                        doc.autoTable({
+                            head: [criteriaHead],
+                            body: criteriaBody,
+                            startY: y, 
+                            theme: 'striped',
+                            headStyles: { 
+                                fillColor: PRIMARY_BLUE, 
+                                fontSize: 10, 
+                                fontStyle: 'bold' 
+                            },
+                            styles: { fontSize: 9, cellPadding: 2 },
+                            columnStyles: {
+                                0: { cellWidth: 130 }, // Vertical orientation needs narrower columns
+                                1: { cellWidth: 40, fontStyle: 'bold' },
+                                2: { cellWidth: 20, halign: 'center' }
+                            },
+                            didParseCell: (data) => {
+                                // Nuevo enfoque: Modificar estilos en didParseCell para evitar errores de coordenadas
+                                if (data.section === 'body' && data.column.index === 1 && data.cell.text.length > 0) { // Nivel Asignado column
+                                    // Obtenemos el texto del nivel, que ahora es preciso
+                                    const levelText = data.cell.raw; 
+                                    
+                                    if (levelText.includes('SEPARADOR')) {
+                                        data.cell.styles.fillColor = [220, 220, 220]; // Gris claro
+                                        data.cell.styles.fontStyle = 'italic';
+                                        data.cell.styles.textColor = [100, 100, 100];
+                                    } else {
+                                        let color = getPerformanceColorRGB(levelText);
+                                        let textColor = (levelText.includes('Proceso') || levelText.includes('N/A')) ? BLACK : [255, 255, 255];
+                                        
+                                        data.cell.styles.fillColor = color;
+                                        data.cell.styles.textColor = textColor;
+                                        data.cell.styles.fontStyle = 'bold'; // Mantener el estilo en negrita
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Get position after the table
+                        let finalY = doc.autoTable.previous.finalY + 10;
+                        
+                        // --- RESUMEN Y DESEMPEÑO (Bloques claros) ---
+                        const summaryX = 10;
+                        const scaleX = pageWidth / 2; // Midpoint for column split
+
+                        // 1. Box for Results
+                        doc.setFillColor(240, 240, 240); // Light gray background
+                        doc.rect(summaryX, finalY - 5, pageWidth - 20, 35, 'F'); 
+                        
+                        // Column 1: Scores
+                        doc.setFontSize(10);
+                        doc.setTextColor(0, 0, 0); 
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`PUNTAJE TOTAL (Máx ${totalMaxScore}):`, summaryX + 5, finalY);
+                        doc.text(`${studentData.total}`, summaryX + 70, finalY);
+                        finalY += 7;
+
+                        doc.text(`PROMEDIO (Máx ${maxScorePerCriterion.toFixed(1)}):`, summaryX + 5, finalY);
+                        doc.text(`${studentData.average}`, summaryX + 70, finalY);
+                        finalY += 10;
+                        
+                        // Performance highlight (inside the box)
+                        doc.setFontSize(11);
+                        doc.setTextColor(ACCENT_RED[0], ACCENT_RED[1], ACCENT_RED[2]); // Use red as main accent color for performance title
+                        doc.text(`NIVEL DE DESEMPEÑO: ${studentData.performance}`, summaryX + 5, finalY);
+                        doc.setFont('helvetica', 'normal');
+                        
+                        // 2. Box for Scale Reference
+                        let scaleY = doc.autoTable.previous.finalY + 10; 
+                        doc.setFontSize(10);
+                        doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+                        doc.text('ESCALA DE DESEMPEÑO:', scaleX, scaleY);
+                        scaleY += 5;
+                        doc.text(`0.0 - 1.9: Previo al Inicio`, scaleX, scaleY);
+                        scaleY += 5;
+                        doc.text(`2.0 - 2.9: Inicio`, scaleX, scaleY);
+                        scaleY += 5;
+                        doc.text(`3.0 - 3.9: Proceso`, scaleX, scaleY);
+                        scaleY += 5;
+                        doc.text(`4.0 - 4.9: Logrado`, scaleX, scaleY);
+                        scaleY += 5;
+                        doc.text(`5.0: Destacado`, scaleX, scaleY);
+                    });
+                }
+                
+                if (type === 'summary') {
+                    // *************************************************************
+                    // REPORTE RESUMEN GRUPAL (ORIENTACIÓN HORIZONTAL)
+                    // *************************************************************
+
+                    let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
+                    
+                    y = 15; // Resetear Y
                     
                     // --- ENCABEZADO Y TÍTULO VISUAL ---
                     doc.setFontSize(24);
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
                     doc.text(`Evalyms+`, center, y, { align: 'center' });
-                    y += 5;
+                        y += 5;
 
-                    doc.setFontSize(12);
+                    doc.setFontSize(10);
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                    doc.text(`REPORTE DETALLADO INDIVIDUAL`, center, y, { align: 'center' });
+                    doc.text(reportTitle, center, y, { align: 'center' });
                     y += 10;
                     
-                    // --- BLOQUE DE INFORMACIÓN ---
+                    const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+
                     doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0); 
-                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(0, 0, 0);
                     doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
                     doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
-                    doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
-                    
-                    doc.text(`Fecha: ${formattedDate}`, pageWidth - 10, y, { align: 'right' });
-                    doc.text(`Lista de Cotejo: ${checklist.name}`, pageWidth - 10, y + 5, { align: 'right' });
+                    doc.text(`Grupo: ${group.name} (${group.section})`, pageWidth - 10, y, { align: 'right' });
+                    doc.text(`Lista de Cotejo: ${checklist.name} (Cat: ${checklist.linkedCategory} - ${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+                    doc.text(`Fecha: ${formattedDate}`, 10, y + 10);
                     y += 15;
 
-                    // Estudiante Destacado
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
-                    doc.text(`Estudiante: ${studentData.name}`, 10, y); 
-                    y += 5;
+                    let totalGroupScore = 0;
+                    let totalStudentsEvaluated = 0;
+                    let totalSumOfAverages = 0;
 
-                    // Headers for the detailed checklist
-                    const criteriaHead = ['Criterio de Evaluación', 'Nivel Asignado', 'Puntaje'];
-                    const criteriaBody = checklist.criteria.map((criterion, i) => {
-                        const score = studentData.evals[i] || 0;
-                        const level = checklist.levels.find(l => l.score === score);
-                        const levelName = level ? level.name : 'N/A';
-                        return [criterion, levelName, score.toString()];
+                    allStudentsData.forEach(data => {
+                        if (data.total > 0) {
+                            totalGroupScore += data.total;
+                            totalStudentsEvaluated++;
+                            totalSumOfAverages += parseFloat(data.average);
+                        }
                     });
+                    
+                    const maxAvg = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+                    const finalNormalizedAverage = totalStudentsEvaluated > 0 
+                        ? totalSumOfAverages / totalStudentsEvaluated
+                        : 0;
 
-                    // Add checklist table
+                    const performance = getPerformanceLevel(finalNormalizedAverage);
+                    const performanceName = performance.name; // Obtener el nombre exacto
+
+
+                    const head = [
+                        ['Estudiante', `Puntaje Total (Max ${totalMaxScore})`, `Promedio (Max ${maxAvg.toFixed(1)})`, 'Nivel de Desempeño']
+                    ];
+                    const body = allStudentsData.map(data => [
+                        data.name,
+                        data.total.toString(),
+                        data.average,
+                        data.performance
+                    ]);
+
                     doc.autoTable({
-                        head: [criteriaHead],
-                        body: criteriaBody,
-                        startY: y, 
-                        theme: 'striped',
+                        head: head,
+                        body: body,
+                        startY: y + 5, 
+                        theme: 'grid',
                         headStyles: { 
                             fillColor: PRIMARY_BLUE, 
-                            fontSize: 10, 
+                            textColor: 255, 
                             fontStyle: 'bold' 
-                        },
-                        styles: { fontSize: 9, cellPadding: 2 },
-                        columnStyles: {
-                            0: { cellWidth: 130 }, // Vertical orientation needs narrower columns
-                            1: { cellWidth: 40, fontStyle: 'bold' },
-                            2: { cellWidth: 20, halign: 'center' }
-                        },
-                         didParseCell: (data) => {
-                            // Nuevo enfoque: Modificar estilos en didParseCell para evitar errores de coordenadas
-                            if (data.section === 'body' && data.column.index === 1 && data.cell.text.length > 0) { // Nivel Asignado column
-                                const levelText = data.cell.text[0];
-                                let color = [240, 240, 240]; // Default light gray
-                                let textColor = [0, 0, 0]; // Default black
-
-                                // Asignar colores basados en el nivel de texto
-                                if (levelText.includes('Destacado')) { color = ACCENT_PURPLE; textColor = [255, 255, 255]; }
-                                else if (levelText.includes('Logrado')) { color = ACCENT_GREEN; textColor = [255, 255, 255]; }
-                                // Usar el mismo color para 'Proceso' y 'En proceso'
-                                else if (levelText.includes('Proceso') || levelText.includes('en proceso')) { color = [255, 193, 7]; textColor = [0, 0, 0]; } 
-                                else if (levelText.includes('Inicio')) { color = [23, 162, 184]; textColor = [255, 255, 255]; }
-                                // Usar el mismo color para 'Previo' y 'Previo al Inicio'
-                                else if (levelText.includes('Previo')) { color = ACCENT_RED; textColor = [255, 255, 255]; }
+                        }, 
+                        styles: { fontSize: 10 },
+                        // Color rows based on performance level
+                        didParseCell: (data) => {
+                            if (data.section === 'body' && (data.column.index === data.row.raw.length - 1)) {
+                                const level = data.cell.raw;
+                                data.cell.styles.fillColor = getPerformanceColorRGB(level);
                                 
-                                data.cell.styles.fillColor = color;
-                                data.cell.styles.textColor = textColor;
-                                data.cell.styles.fontStyle = 'bold'; // Mantener el estilo en negrita
+                                // *** MODIFICACIÓN SOLICITADA: Color de texto negro para el Nivel de Desempeño ***
+                                if (level === 'N/A') {
+                                    data.cell.styles.textColor = SECONDARY_GRAY; // Gris para N/A
+                                } else {
+                                    data.cell.styles.textColor = BLACK; // Color negro para todos los demás (Destacado, Logrado, Inicio, Previo)
+                                }
+                                // *********************************************************************************
                             }
+                        },
+                        foot: [
+                            ['RESUMEN GRUPAL:', totalGroupScore.toString(), `PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}`, `NIVEL: ${performanceName}`]
+                        ],
+                        footStyles: { 
+                            fillColor: SECONDARY_GRAY, 
+                            textColor: 255, 
+                            fontStyle: 'bold' 
                         }
                     });
-                    
-                    // Get position after the table
-                    let finalY = doc.autoTable.previous.finalY + 10;
-                    
-                    // --- RESUMEN Y DESEMPEÑO (Bloques claros) ---
-                    const summaryX = 10;
-                    const scaleX = pageWidth / 2; // Midpoint for column split
+                }
 
-                    // 1. Box for Results
-                    doc.setFillColor(240, 240, 240); // Light gray background
-                    doc.rect(summaryX, finalY - 5, pageWidth - 20, 35, 'F'); 
-                    
-                    // Column 1: Scores
-                    doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0); 
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(`PUNTAJE TOTAL (Máx ${totalMaxScore}):`, summaryX + 5, finalY);
-                    doc.text(`${studentData.total}`, summaryX + 70, finalY);
-                    finalY += 7;
-
-                    doc.text(`PROMEDIO (Máx ${maxScorePerCriterion.toFixed(1)}):`, summaryX + 5, finalY);
-                    doc.text(`${studentData.average}`, summaryX + 70, finalY);
-                    finalY += 10;
-                    
-                    // Performance highlight (inside the box)
-                    doc.setFontSize(14);
-                    doc.setTextColor(ACCENT_RED[0], ACCENT_RED[1], ACCENT_RED[2]); // Use red as main accent color for performance title
-                    doc.text(`NIVEL DE DESEMPEÑO: ${studentData.performance}`, summaryX + 5, finalY);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    // 2. Box for Scale Reference
-                    let scaleY = doc.autoTable.previous.finalY + 10; 
-                    doc.setFontSize(10);
-                    doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                    doc.text('ESCALA DE DESEMPEÑO:', scaleX, scaleY);
-                    scaleY += 5;
-                    doc.text(`0.0 - 1.9: Previo al Inicio`, scaleX, scaleY);
-                    scaleY += 5;
-                    doc.text(`2.0 - 2.9: Inicio`, scaleX, scaleY);
-                    scaleY += 5;
-                    doc.text(`3.0 - 3.9: Proceso`, scaleX, scaleY);
-                    scaleY += 5;
-                    doc.text(`4.0 - 4.9: Logrado`, scaleX, scaleY);
-                    scaleY += 5;
-                    doc.text(`5.0: Destacado`, scaleX, scaleY);
-                });
+                doc.save(fileName);
+                showToast(`Reporte ${type} generado como PDF.`, 'success');
             }
-            
-            if (type === 'summary') {
-                // *************************************************************
-                // REPORTE RESUMEN GRUPAL (ORIENTACIÓN HORIZONTAL)
-                // *************************************************************
-
-                let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
-                
-                let y = 15;
-                
-                // --- ENCABEZADO Y TÍTULO VISUAL ---
-                doc.setFontSize(24);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
-                doc.text(`Evalyms+`, center, y, { align: 'center' });
-                    y += 5;
-
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                doc.text(reportTitle, center, y, { align: 'center' });
-                y += 10;
-
-                doc.setFontSize(10);
-                doc.setTextColor(0, 0, 0);
-                doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
-                doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
-                doc.text(`Grupo: ${group.name} (${group.section})`, pageWidth - 10, y, { align: 'right' });
-                doc.text(`Lista de Cotejo: ${checklist.name}`, pageWidth - 10, y + 5, { align: 'right' });
-                doc.text(`Fecha: ${formattedDate}`, 10, y + 10);
-                y += 15;
-
-                let totalGroupScore = 0;
-                let totalStudentsEvaluated = 0;
-                allStudentsData.forEach(data => {
-                    if (data.total > 0) {
-                         totalGroupScore += data.total;
-                         totalStudentsEvaluated++;
-                    }
-                });
-                
-                const maxAvg = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
-                const finalNormalizedAverage = totalStudentsEvaluated > 0 
-                    ? totalGroupScore / (checklist.criteria.length * totalStudentsEvaluated) 
-                    : 0;
-
-                const performance = getPerformanceLevel(finalNormalizedAverage);
-                const performanceName = performance.name === 'Proceso' ? 'En proceso' : performance.name;
-
-
-                 const head = [
-                    ['Estudiante', `Puntaje Total (Max ${totalMaxScore})`, `Promedio (Max ${maxAvg.toFixed(1)})`, 'Nivel de Desempeño']
-                ];
-                const body = allStudentsData.map(data => [
-                    data.name,
-                    data.total.toString(),
-                    data.average,
-                    data.performance
-                ]);
-
-                doc.autoTable({
-                    head: head,
-                    body: body,
-                    startY: y + 5, 
-                    theme: 'grid',
-                    headStyles: { 
-                        fillColor: PRIMARY_BLUE, 
-                        textColor: 255, 
-                        fontStyle: 'bold' 
-                    }, 
-                    styles: { fontSize: 10 },
-                    // Color rows based on performance level
-                    didParseCell: (data) => {
-                         if (data.section === 'body' && (data.column.index === data.row.raw.length - 1)) {
-                            const level = data.cell.raw;
-                            let color = [240, 240, 240];
-                            if (level.includes('Destacado')) color = ACCENT_PURPLE;
-                            else if (level.includes('Logrado')) color = ACCENT_GREEN;
-                            else if (level.includes('Proceso') || level.includes('en proceso')) color = [255, 193, 7];
-                            else if (level.includes('Inicio')) color = [23, 162, 184];
-                            else if (level.includes('Previo')) color = ACCENT_RED;
-                            data.cell.styles.fillColor = color;
-                            
-                            // *** MODIFICACIÓN SOLICITADA: Color de texto negro para el Nivel de Desempeño ***
-                            if (level === 'N/A') {
-                                data.cell.styles.textColor = SECONDARY_GRAY; // Gris para N/A
-                            } else {
-                                data.cell.styles.textColor = BLACK; // Color negro para todos los demás (Destacado, Logrado, Inicio, Previo)
-                            }
-                            // *********************************************************************************
-                        }
-                    },
-                    foot: [
-                        ['RESUMEN GRUPAL:', totalGroupScore.toString(), `PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}`, `NIVEL: ${performanceName}`]
-                    ],
-                    footStyles: { 
-                        fillColor: SECONDARY_GRAY, 
-                        textColor: 255, 
-                        fontStyle: 'bold' 
-                    }
-                });
-            }
-
-            doc.save(fileName);
-            showToast(`Reporte ${type} generado como PDF.`, 'success');
         }
 
         // **********************************************
@@ -2125,19 +3338,44 @@
             };
             
             const backups = getBackups();
+            const timestamp = Date.now();
+            
+            // 1. Guardar backup en localStorage
             backups.push({
-                timestamp: Date.now(),
+                timestamp: timestamp,
                 type: type,
                 data: currentData
             });
             setBackups(backups);
             
             if (type !== 'Manual') {
-                appData.backupConfig.lastRun = Date.now();
+                appData.backupConfig.lastRun = timestamp;
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
             }
+
+            // 2. Generar archivo JSON para descarga (SOLO SI ES MANUAL)
+            if (type === 'Manual') {
+                const dataStr = JSON.stringify(currentData, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const now = new Date(timestamp);
+                // Formato: backups_evalyoanms_año_mes_hora_minuto.json
+                const filename = `backups_evalyoanms_${now.getFullYear()}_${(now.getMonth() + 1).toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}.json`;
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast(`Backup Manual realizado y descargado como ${filename}.`, 'dark');
+            } else {
+                showToast(`Backup Automático realizado con éxito.`, 'dark');
+            }
             
-            showToast(`Backup (${type}) realizado con éxito.`, 'dark');
             renderBackupModule();
         }
 
@@ -2164,19 +3402,8 @@
             const backup = backups.find(b => b.timestamp === timestamp);
             if (backup) {
                 // Restaurar solo las secciones de datos, manteniendo la configuración de backup
-                appData.institution = backup.data.institution;
-                appData.teacher = backup.data.teacher;
-                appData.studentGroups = backup.data.studentGroups;
-                appData.checklists = backup.data.checklists;
-                appData.evaluations = backup.data.evaluations;
-
-                // Forzar un guardado completo de appData al Local Storage principal
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
-                
-                showToast('Datos restaurados exitosamente desde el backup.', 'warning');
-                // Recargar el módulo actual para reflejar los cambios
-                const activeModuleId = document.querySelector('.module-section:not(.d-none)').id;
-                showModule(activeModuleId); 
+                // ************* LOGIC MOVED TO RESTORE_DATA_FUNCTION *****************
+                restoreData(backup.data);
             }
         }
         
@@ -2212,6 +3439,75 @@
                 createBackup('Automático');
             }
         }
+        
+        // **********************************************
+        // NUEVA FUNCIÓN: RESTAURACIÓN DESDE ARCHIVO (JSON)
+        // **********************************************
+
+        // Función centralizada para aplicar la restauración
+        function restoreData(dataToRestore) {
+            // Validación mínima del formato
+            if (!dataToRestore.studentGroups || !dataToRestore.checklists || !dataToRestore.evaluations) {
+                 showToast('Error: El archivo JSON no contiene la estructura de datos de Evalyms+.', 'danger');
+                 return false;
+            }
+            
+            appData.institution = dataToRestore.institution;
+            appData.teacher = dataToRestore.teacher;
+            appData.studentGroups = dataToRestore.studentGroups;
+            appData.checklists = dataToRestore.checklists;
+            appData.evaluations = dataToRestore.evaluations;
+            
+            // Si la data del archivo tiene backupConfig, la usamos, sino mantenemos la local.
+            if (dataToRestore.backupConfig) {
+                 appData.backupConfig = dataToRestore.backupConfig;
+            }
+
+            // Forzar un guardado completo de appData al Local Storage principal
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
+            
+            showToast('Datos restaurados exitosamente.', 'warning');
+            
+            // Recargar el módulo actual para reflejar los cambios
+            const activeModuleId = document.querySelector('.module-section:not(.d-none)').id;
+            showModule(activeModuleId);
+            
+            return true;
+        }
+
+        // Listener para el botón de restauración desde archivo
+        document.getElementById('restore-from-file-btn').addEventListener('click', () => {
+            const fileInput = document.getElementById('restore-file-input');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showToast('Selecciona un archivo JSON de backup primero.', 'danger');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                try {
+                    const parsedData = JSON.parse(event.target.result);
+                    
+                    if (confirm('ADVERTENCIA: ¿Estás seguro de que deseas restaurar desde este archivo? Los datos actuales serán REEMPLAZADOS.')) {
+                        restoreData(parsedData);
+                    }
+
+                } catch (e) {
+                    showToast('Error al procesar el archivo. Asegúrate de que sea un archivo JSON válido de Evalyms+.', 'danger');
+                    console.error("Error parsing backup file:", e);
+                }
+            };
+            
+            reader.onerror = function() {
+                showToast('Error al leer el archivo.', 'danger');
+            };
+
+            reader.readAsText(file);
+        });
+
         // **********************************************
         // FIN MÓDULO DE BACKUPS
         // **********************************************
@@ -2247,10 +3543,18 @@
 
             const studentModal = document.getElementById('studentGroupModal');
             studentModal.addEventListener('show.bs.modal', (e) => {
-                if (!e.relatedTarget.classList.contains('edit-group')) {
+                // Si el botón que abre el modal tiene la clase 'edit-group' o 'manage-categories-group',
+                // la función fillStudentGroupModal ya fue llamada con el ID.
+                if (!e.relatedTarget.classList.contains('edit-group') && !e.relatedTarget.classList.contains('manage-categories-group')) {
                     fillStudentGroupModal(null);
                 }
             });
+            
+            // ************ ELIMINADO EL LISTENER HÚERFANO QUE CAUSABA EL ERROR ************
+            // El botón 'manage-categories-btn' fue eliminado del DOM, por lo que su listener debe eliminarse aquí.
+            // document.getElementById('manage-categories-btn').addEventListener('click', () => { ... });
+            // ****************************************************************************
+
 
             const checklistModal = document.getElementById('checklistModal');
             checklistModal.addEventListener('show.bs.modal', (e) => {
