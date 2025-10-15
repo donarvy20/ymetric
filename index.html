@@ -1586,7 +1586,7 @@
                         const levelsText = checklist.levels.map(l => `${l.name} (${l.score})`).join(', ');
                         
                         contentHtml += `
-                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-lg mb-2">
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center rounded-lg mb-2 border border-dark">
                                 <div class="flex-grow-1 me-3">
                                     <h5 class="mb-1 text-info">${checklist.name} <span class="badge bg-secondary ms-2">${categoryInfo} (${weightInfo}%)</span></h5>
                                     <p class="mb-1 text-muted">Criterios: ${criteriaCount} | Niveles: ${levelsText}</p>
@@ -3599,3 +3599,4 @@
     </script>
 </body>
 </html>
+
