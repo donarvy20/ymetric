@@ -1431,6 +1431,7 @@
             const center = pageWidth / 2;
             const PRIMARY_BLUE = [15, 76, 129]; 
             const SECONDARY_GRAY = [108, 117, 125];
+            const fileName = `Lista_Cotejo_${checklist.name.replace(/\s/g, '_')}.pdf`;
 
             let y = 15;
             
@@ -1519,19 +1520,49 @@
             
             // Generar el Blob y URL
             const blob = doc.output('blob');
-            const file = new File([blob], `Lista_Cotejo_${checklist.name}.pdf`, { type: blob.type });
+            const file = new File([blob], fileName, { type: blob.type });
             const pdfUrl = URL.createObjectURL(file);
             
             const message = `*Evalyms+ Lista de Cotejo:* ${checklist.name} (Categoría: ${checklist.linkedCategory}). Revisa el archivo adjunto.`;
-            
-            showToast('Generando PDF. Para compartir por WhatsApp, necesitas un gestor de archivos o compartirlo manualmente.', 'info');
-            
-            window.open(pdfUrl, '_blank');
-            
+
+            // ******************************************************
+            // LÓGICA DE ENVÍO A (WhatsApp/Compartir Nativo)
+            // ******************************************************
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                // Opción 1: Compartir Nativo (solo en móviles y navegadores compatibles)
+                navigator.share({
+                    files: [file],
+                    title: fileName,
+                    text: message
+                }).then(() => {
+                    showToast('PDF compartido mediante el diálogo nativo "Enviar a".', 'success');
+                }).catch((error) => {
+                    console.error('Error al compartir de forma nativa:', error);
+                    showFallbackShare(pdfUrl, message, fileName);
+                });
+            } else {
+                // Opción 2: Fallback (Descarga y Enlace de WhatsApp)
+                showFallbackShare(pdfUrl, message, fileName);
+            }
+        }
+        
+        function showFallbackShare(pdfUrl, message, fileName) {
+            // Activa la descarga del archivo (simula 'Descargar' del "Enviar a")
+            const a = document.createElement('a');
+            a.href = pdfUrl;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(pdfUrl);
+
+            showToast(`PDF descargado como ${fileName}. Se abrirá el enlace de WhatsApp (debes adjuntar el archivo manualmente).`, 'warning');
+
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
             
             setTimeout(() => {
-                const confirmShare = confirm('PDF generado. ¿Deseas abrir WhatsApp para enviar el mensaje de texto (el archivo debes adjuntarlo manualmente)?');
+                const confirmShare = confirm('PDF descargado. ¿Deseas abrir WhatsApp para enviar el mensaje? (Recuerda que debes adjuntar el archivo manualmente).');
                 if (confirmShare) {
                     window.open(whatsappUrl, '_blank');
                 }
