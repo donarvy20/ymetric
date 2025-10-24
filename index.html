@@ -255,9 +255,15 @@
             <!-- FIN BOTÓN HAMBURGUESA -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto" id="nav-links-container">
+                     <!-- NUEVO: Botón Home -->
+                     <li class="nav-item">
+                        <a class="nav-link" href="#home-module" data-module="home">
+                            <i class="bi bi-house-door-fill me-1"></i> Inicio
+                        </a>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="#basic-data-module" data-module="basic-data">
-                            <i class="bi bi-house-door-fill me-1"></i> Datos Básicos
+                        <a class="nav-link" href="#basic-data-module" data-module="basic-data">
+                            <i class="bi bi-pencil-square me-1"></i> Datos Básicos
                         </a>
                     </li>
                     <li class="nav-item">
@@ -301,9 +307,62 @@
         
         <!-- Contenedor para mensajes de notificación -->
         <div id="alert-container" class="mt-3"></div>
+        
+        <!-- Módulo de Inicio (Home) -->
+        <section id="home-module" class="module-section active-module">
+            <div class="card p-5 text-center shadow-lg">
+                <h1 class="display-4 text-primary fw-bold mb-3">
+                    <i class="bi bi-journals me-5"></i> Bienvenido a Evalyms+
+                </h1>
+                <p class="lead text-secondary">
+                  
+                </p>
+                <hr class="my-4">
+                
+                <!-- HOME: OPCIONES DEL MENÚ HAMBURGUESA -->
+                <div class="row g-4 justify-content-center">
+                    
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <button class="btn btn-primary btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm" onclick="showModule('basic-data-module')">
+                            <i class="bi bi-pencil-square" style="font-size: 2.5rem;"></i>
+                            <span class="mt-2 fw-bold">Datos Básicos</span>
+                        </button>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <button class="btn btn-success btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm" onclick="showModule('student-management-module')">
+                            <i class="bi bi-people-fill" style="font-size: 2.5rem;"></i>
+                            <span class="mt-2 fw-bold">Gestión Estudiantes</span>
+                        </button>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <button class="btn btn-info text-white btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm" onclick="showModule('checklist-module')">
+                            <i class="bi bi-list-check" style="font-size: 2.5rem;"></i>
+                            <span class="mt-2 fw-bold">Lista de Cotejo</span>
+                        </button>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <button class="btn btn-warning btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm" onclick="showModule('evaluation-module')">
+                            <i class="bi bi-clipboard2-data-fill" style="font-size: 2.5rem;"></i>
+                            <span class="mt-2 fw-bold">Evaluación</span>
+                        </button>
+                    </div>
+
+                    <div class="col-6 col-md-4 col-lg-2">
+                        <button class="btn btn-secondary btn-lg w-100 h-100 d-flex flex-column align-items-center justify-content-center shadow-sm" onclick="showModule('reports-module')">
+                            <i class="bi bi-file-earmark-pdf-fill" style="font-size: 2.5rem;"></i>
+                            <span class="mt-2 fw-bold">Reportes PDF</span>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
 
         <!-- Módulo de Datos Básicos -->
-        <section id="basic-data-module" class="module-section active-module">
+        <section id="basic-data-module" class="module-section d-none">
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h2 class="h4 mb-0"><i class="bi bi-pencil-square me-2"></i>Datos Básicos de la Institución/Docente</h2>
@@ -468,6 +527,14 @@
                         </button>
                     </div>
 
+                    <!-- NUEVO: Botones de Exportar por Equipo (Eval. Grupal) -->
+                    <div id="team-report-buttons" class="mt-4 border p-3 rounded d-none">
+                        <h6 class="fw-bold">Reportes por Equipo (Evaluación Grupal)</h6>
+                        <div id="team-report-container" class="d-grid gap-2 mt-2">
+                            <!-- Aquí se renderizarán los botones por color de grupo -->
+                        </div>
+                    </div>
+                    
                     <div id="report-preview" class="mt-4 p-3 border rounded bg-light">
                         <p class="mb-0 text-muted">Aquí se mostrará una vista previa simple del reporte resumido.</p>
                     </div>
@@ -590,6 +657,13 @@
                     <p class="text-muted small">Define los tipos de evaluación y su peso en porcentaje para el grupo: <span id="current-group-name-categories" class="fw-bold"></span></p>
 
                     <div id="categories-manager-content">
+                        <!-- NUEVO: Botón de Importar Categorías -->
+                         <div class="mb-3">
+                            <button id="import-categories-btn" class="btn btn-outline-secondary btn-sm w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#importCategoriesModal">
+                                <i class="bi bi-arrow-down-left-square"></i> Importar Categorías desde Otro Grupo
+                            </button>
+                        </div>
+
                         <div class="row g-2 mb-3">
                             <div class="col-12 col-md-5">
                                 <input type="text" class="form-control form-control-sm" id="new-category-name" placeholder="Nombre (Ej: Proyecto Final)">
@@ -622,6 +696,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal para Importar Categorías (NUEVO) -->
+    <div class="modal fade" id="importCategoriesModal" tabindex="-1" aria-labelledby="importCategoriesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-xl">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="importCategoriesModalLabel">Importar Categorías</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Copia las categorías de evaluación de otro grupo al grupo actual.</p>
+                    <label for="import-group-select" class="form-label">Seleccionar Grupo Fuente</label>
+                    <select id="import-group-select" class="form-select rounded-lg mb-3">
+                        <option value="">-- Seleccionar Grupo --</option>
+                    </select>
+                    
+                    <!-- NUEVA VISTA PREVIA -->
+                    <div id="import-categories-preview" class="mt-3 p-3 border rounded d-none">
+                        <h6 class="fw-bold">Categorías a Importar:</h6>
+                        <div id="preview-list-container"></div>
+                    </div>
+
+                    <button id="confirm-import-btn" class="btn btn-primary w-100 rounded-pill" disabled>
+                        Importar Categorías
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Modal para Gestión de Lista de Cotejo (Crear/Modificar) -->
     <div class="modal fade" id="checklistModal" tabindex="-1" aria-labelledby="checklistModalLabel" aria-hidden="true">
@@ -832,6 +936,12 @@
             }
             if (moduleId === 'reports-module') renderReportSelectors();
             if (moduleId === 'backup-module') renderBackupModule(); // Nuevo módulo
+            
+            // Si el módulo activo es el HOME, no seleccionamos un enlace activo en el nav
+            if (moduleId === 'home-module') {
+                document.querySelector(`.nav-link[data-module="home"]`).classList.add('active');
+            }
+
 
             // Cierra el menú al cambiar de módulo (especialmente útil en móviles)
             closeNavbar();
@@ -976,17 +1086,94 @@
 
         // Evento que se dispara al abrir el Modal de Categorías
         document.getElementById('categoryManagementModal').addEventListener('show.bs.modal', (e) => {
+            // ** CORRECCIÓN 1: El ID ya está sincronizado por el listener del botón manage-categories-direct **
             const groupId = document.getElementById('temp-group-id-for-categories').value;
             const group = appData.studentGroups.find(g => g.id === groupId);
             
             if (group) {
                 document.getElementById('current-group-name-categories').textContent = group.name;
+                // ** CORRECCIÓN 1: Llamada directa a render Categories List para cargar de inmediato **
                 renderCategoriesList(group);
             } else {
                 document.getElementById('current-group-name-categories').textContent = 'N/A';
-                document.getElementById('categories-list-container').innerHTML = '<p class="text-muted small text-center mb-0" id="no-categories-msg">No se pudo cargar la información del grupo.</p>';
+                document.getElementById('categories-list-container').innerHTML = '<p class="text-muted small text-center mb-0" id="no-categories-msg">No se pudo cargar la información del grupo. (Crea o guarda el grupo primero)</p>';
+            }
+            
+            // Rellenar el selector de grupos para importar
+            const importGroupSelect = document.getElementById('import-group-select');
+            const currentGroupId = document.getElementById('temp-group-id-for-categories').value;
+
+            importGroupSelect.innerHTML = '<option value="">-- Seleccionar Grupo --</option>';
+            appData.studentGroups.forEach(g => {
+                // No permitir importar categorías del mismo grupo
+                if (g.id !== currentGroupId) {
+                    importGroupSelect.innerHTML += `<option value="${g.id}">${g.name} (${g.section})</option>`;
+                }
+            });
+            document.getElementById('confirm-import-btn').disabled = true;
+            document.getElementById('import-categories-preview').classList.add('d-none'); // Ocultar previsualización
+            document.getElementById('preview-list-container').innerHTML = ''; // Limpiar previsualización
+
+        });
+        
+        // Listener para habilitar/deshabilitar el botón de importar
+        document.getElementById('import-group-select').addEventListener('change', (e) => {
+             const sourceGroupId = e.target.value;
+             document.getElementById('confirm-import-btn').disabled = !sourceGroupId;
+             
+             const previewContainer = document.getElementById('preview-list-container');
+             const previewWrapper = document.getElementById('import-categories-preview');
+
+             if (sourceGroupId) {
+                 const sourceGroup = appData.studentGroups.find(g => g.id === sourceGroupId);
+                 previewWrapper.classList.remove('d-none');
+                 
+                 let previewHtml = `<ul class="list-unstyled small">`;
+                 
+                 if (sourceGroup && sourceGroup.categories.list.length > 0) {
+                     sourceGroup.categories.list.forEach(cat => {
+                         previewHtml += `<li><span class="badge bg-secondary me-2">${cat.weight}%</span> ${cat.name}</li>`;
+                     });
+                 } else {
+                     previewHtml += `<li>No hay categorías válidas en este grupo fuente.</li>`;
+                 }
+
+                 previewHtml += `</ul>`;
+                 previewContainer.innerHTML = previewHtml;
+
+             } else {
+                 previewWrapper.classList.add('d-none');
+                 previewContainer.innerHTML = '';
+             }
+
+        });
+
+        // Lógica de importación de categorías
+        document.getElementById('confirm-import-btn').addEventListener('click', () => {
+            const sourceGroupId = document.getElementById('import-group-select').value;
+            const targetGroupId = document.getElementById('temp-group-id-for-categories').value;
+            
+            const sourceGroup = appData.studentGroups.find(g => g.id === sourceGroupId);
+            const targetGroup = appData.studentGroups.find(g => g.id === targetGroupId);
+
+            if (sourceGroup && targetGroup) {
+                // Copia profunda de la lista de categorías
+                targetGroup.categories.list = JSON.parse(JSON.stringify(sourceGroup.categories.list));
+                targetGroup.categories.use = sourceGroup.categories.use;
+                
+                saveData();
+                renderCategoriesList(targetGroup); // Refrescar la vista del modal
+                renderStudentGroups(); // Refrescar la vista principal de grupos (para ponderación)
+                showToast(`Categorías importadas de ${sourceGroup.name}.`, 'success');
+                
+                // Cerrar el modal de importación
+                const importModal = bootstrap.Modal.getInstance(document.getElementById('importCategoriesModal'));
+                importModal.hide();
+            } else {
+                 showToast('Error: No se pudo importar la categoría.', 'danger');
             }
         });
+
 
         // Evento que se dispara al cerrar el Modal de Categorías
         document.getElementById('categoryManagementModal').addEventListener('hidden.bs.modal', () => {
@@ -1102,7 +1289,7 @@
                 btn.addEventListener('click', (e) => {
                     const groupId = e.currentTarget.dataset.id;
                     
-                    // 1. Sincronizar el ID temporal necesario para el modal de categorías
+                    // ** CORRECCIÓN 1: Sincronización explícita y directa **
                     document.getElementById('temp-group-id-for-categories').value = groupId;
                     // El evento show.bs.modal se encargará de renderizar las categorías
                 });
@@ -1611,7 +1798,7 @@
                 // Eliminamos la activación forzada aquí
                 let contentHtml = `
                     <div class="tab-pane fade" id="${tabPaneId}" role="tabpanel" aria-labelledby="${tabId}">
-                        
+                        <h5 class="mb-3 text-secondary">${group.name} (${group.section}) - Listas de Cotejo</h5>
                         <div class="list-group">
                 `;
                 
@@ -1643,7 +1830,7 @@
                                     <div class="d-flex flex-column flex-sm-row flex-wrap gap-2">
                                         <!-- BOTONES DE ACCIÓN -->
                                         <button class="btn btn-sm btn-success btn-icon rounded-pill export-share-checklist-btn" data-id="${checklist.id}">
-                                            <i class="bi bi-whatsapp"></i> Exportar (PDF)
+                                            <i class="bi bi-share-fill"></i> Exportar (PDF)
                                         </button>
                                         <button class="btn btn-sm btn-outline-secondary btn-icon rounded-pill duplicate-checklist" data-id="${checklist.id}">
                                             <i class="bi bi-copy"></i> Duplicar
@@ -2514,6 +2701,8 @@
         function updateReportChecklistSelector(groupId, selectedChecklistId = null) {
             const selectChecklist = document.getElementById('report-checklist');
             selectChecklist.innerHTML = '<option value="">-- Seleccionar Lista de Cotejo --</option>';
+            const teamReportButtons = document.getElementById('team-report-buttons');
+            teamReportButtons.classList.add('d-none'); // Ocultar por defecto
 
             if (groupId) {
                 // Filtrar solo las listas cuyo linkedGroupId coincida con el groupId seleccionado
@@ -2529,6 +2718,240 @@
                 } else {
                     selectChecklist.value = "";
                 }
+            }
+        }
+        
+        // NUEVA FUNCIÓN: Renderiza los botones de reporte por equipo/color de grupo
+        function renderTeamReportButtons() {
+            const groupId = document.getElementById('report-group').value;
+            const checklistId = document.getElementById('report-checklist').value;
+            const teamReportContainer = document.getElementById('team-report-container');
+            const teamReportButtons = document.getElementById('team-report-buttons');
+            teamReportContainer.innerHTML = '';
+            teamReportButtons.classList.add('d-none');
+            
+            if (!groupId || !checklistId) return;
+
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            const evaluations = appData.evaluations[groupId]?.[checklistId];
+
+            if (!group || !evaluations) return;
+
+            // Mapear los colores de grupo usados y quién pertenece a ellos
+            const colorMap = {}; // { colorHex: [studentId1, studentId2, ...] }
+            
+            group.students.forEach(student => {
+                const color = student.groupEvalColors[checklistId];
+                const studentEvals = evaluations[student.id];
+
+                // Solo si tiene color asignado Y tiene puntajes guardados
+                if (color && studentEvals && studentEvals.reduce((sum, score) => sum + (score || 0), 0) > 0) {
+                    if (!colorMap[color]) {
+                        colorMap[color] = [];
+                    }
+                    colorMap[color].push(student.name);
+                }
+            });
+
+            if (Object.keys(colorMap).length > 0) {
+                teamReportButtons.classList.remove('d-none');
+                
+                let teamIndex = 1;
+                Object.entries(colorMap).forEach(([colorHex, studentNames]) => {
+                    const studentCount = studentNames.length;
+                    const studentListPreview = studentNames.slice(0, 3).join(', ') + (studentCount > 3 ? '...' : '');
+
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-sm btn-outline-dark btn-icon rounded-pill team-report-btn';
+                    button.style.borderColor = colorHex;
+                    button.style.color = colorHex;
+                    button.style.backgroundColor = colorHex + '33'; // 20% Opacidad
+                    button.dataset.color = colorHex;
+                    
+                    button.innerHTML = `
+                        <span class="badge" style="background-color: ${colorHex}; color: black;">Equipo ${teamIndex} (${studentCount})</span>
+                        <span class="ms-2 small">${studentListPreview}</span>
+                        <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF (Enviar a)</span>
+                    `;
+                    teamReportContainer.appendChild(button);
+                    
+                    button.addEventListener('click', () => generateTeamPDFReport(groupId, checklistId, colorHex));
+                    teamIndex++;
+                });
+
+            }
+        }
+        
+        // NUEVA FUNCIÓN: Generar reporte PDF por EQUIPO
+        function generateTeamPDFReport(groupId, checklistId, teamColor) {
+            const group = appData.studentGroups.find(g => g.id === groupId);
+            const checklist = appData.checklists.find(c => c.id === checklistId);
+            const evaluations = appData.evaluations[groupId]?.[checklistId];
+
+            if (!group || !checklist || !evaluations) {
+                showToast('Datos faltantes para el reporte del equipo.', 'danger');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const center = pageWidth / 2;
+            let y = 15;
+            
+            // Filtrar solo los estudiantes que pertenecen a este equipo (color)
+            const teamStudents = group.students.filter(s => s.groupEvalColors[checklistId] === teamColor);
+
+            if (teamStudents.length === 0) {
+                showToast('No se encontraron estudiantes en este equipo para el reporte.', 'danger');
+                return;
+            }
+
+            // Mapeo de datos para el reporte detallado
+            const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+            const totalMaxScore = maxScorePerCriterion * checklist.criteria.filter(c => c !== '---').length;
+            const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+            const studentsData = teamStudents.map(student => {
+                const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
+                const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+                
+                const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                const criteriaCount = evaluatedScores.length;
+                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+                const performance = getPerformanceLevel(average);
+
+                return {
+                    name: student.name,
+                    evals: studentEvals,
+                    total: totalScore,
+                    average: average.toFixed(1),
+                    performance: performance.name
+                };
+            });
+
+            // --- TÍTULO ---
+            doc.setFontSize(24);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(15, 76, 129);
+            doc.text(`Evalyms+`, center, y, { align: 'center' });
+            y += 5;
+
+            doc.setFontSize(14);
+            doc.setTextColor(108, 117, 125);
+            doc.text(`REPORTE DE EQUIPO - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
+            y += 10;
+            
+            // --- INFO BLOQUE ---
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0); 
+            doc.setFont('helvetica', 'normal');
+            
+            doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+            doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+            doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
+            
+            doc.text(`Categoría: ${checklist.linkedCategory} (${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 10, y + 10, { align: 'right' });
+            y += 15;
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Integrantes del Equipo:`, 10, y);
+            y += 5;
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            // Lista de integrantes
+            let memberNames = studentsData.map(d => d.name);
+            doc.text(memberNames, 10, y, { maxWidth: pageWidth - 20 });
+            y += (Math.ceil(memberNames.length / 5) * 5) + 5; // Estimación de espacio
+
+            // --- TABLA DE CRITERIOS (Lista de Cotejo para el equipo) ---
+            const criteriaHead = ['Criterio de Evaluación', 'Puntaje Promedio', 'Nivel Promedio'];
+            const criteriaBody = [];
+
+            checklist.criteria.forEach((criterion, i) => {
+                if (criterion === '---') {
+                    criteriaBody.push(['', '----- SEPARADOR DE SECCIÓN -----', '']);
+                    return;
+                }
+                
+                // Calcular promedio de score y nivel para este criterio en el equipo
+                const scores = studentsData.map(d => d.evals[i] || 0);
+                const sumScores = scores.reduce((sum, score) => sum + score, 0);
+                const avgScore = sumScores / scores.length;
+                const avgLevel = getPerformanceLevel(avgScore).name;
+
+                criteriaBody.push([criterion, avgScore.toFixed(1), avgLevel]);
+            });
+
+            doc.autoTable({
+                head: [criteriaHead],
+                body: criteriaBody,
+                startY: y, 
+                theme: 'striped',
+                headStyles: { 
+                    fillColor: [teamColor], // Fondo con el color del equipo
+                    textColor: [0, 0, 0], // Texto negro en encabezado
+                    fontStyle: 'bold' 
+                },
+                styles: { fontSize: 9, cellPadding: 2 },
+                columnStyles: {
+                    1: { halign: 'center', fontStyle: 'bold' },
+                    2: { halign: 'center' }
+                },
+                didParseCell: (data) => {
+                    if (data.section === 'body' && data.column.index === 2) { // Columna Nivel Promedio
+                        const level = data.cell.raw;
+                        data.cell.styles.fillColor = getPerformanceColorRGB(level);
+                        data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+                    } else if (data.row.raw[1].includes('SEPARADOR')) {
+                         data.cell.styles.fillColor = [220, 220, 220]; 
+                         data.cell.styles.fontStyle = 'italic';
+                    }
+                }
+            });
+            
+            const totalAvgScore = studentsData.reduce((sum, d) => sum + parseFloat(d.average), 0) / studentsData.length;
+            const finalPerformance = getPerformanceLevel(totalAvgScore);
+
+            let finalY = doc.autoTable.previous.finalY + 5;
+            
+            // --- RESUMEN FINAL DEL EQUIPO ---
+            doc.setFillColor(teamColor + '44'); 
+            doc.rect(10, finalY - 3, pageWidth - 20, 15, 'F'); 
+            
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0); 
+            doc.setFont('helvetica', 'bold');
+            doc.text(`PROMEDIO FINAL DEL EQUIPO: ${totalAvgScore.toFixed(2)}`, 15, finalY + 5);
+            doc.text(`NIVEL DE DESEMPEÑO DEL EQUIPO: ${finalPerformance.name}`, pageWidth - 15, finalY + 5, { align: 'right' });
+
+
+            // Generar el Blob y archivo para compartir
+            const blob = doc.output('blob');
+            const teamName = `Equipo_${teamColor.replace('#', '')}`;
+            const fileName = `Reporte_Equipo_${teamName}_${checklist.name.replace(/\s/g, '_')}.pdf`;
+            const file = new File([blob], fileName, { type: blob.type });
+
+            const message = `*Evalyms+ Reporte de Equipo:* ${checklist.name} para ${teamName}. Revisa el archivo adjunto.`;
+
+            // Usar la lógica de compartir nativo
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: fileName,
+                    text: message
+                }).then(() => {
+                    showToast('PDF compartido mediante el diálogo nativo "Enviar a".', 'success');
+                }).catch((error) => {
+                    console.error('Error al compartir de forma nativa:', error);
+                    // Fallback si falla la API de Share
+                    showFallbackShare(doc.output('datauristring'), message, fileName);
+                });
+            } else {
+                // Fallback (Descarga y Enlace de WhatsApp)
+                showFallbackShare(doc.output('datauristring'), message, fileName);
             }
         }
 
@@ -2550,10 +2973,14 @@
                 const groupId = e.target.value;
                 updateReportChecklistSelector(groupId); // Filtrar listas
                 checkReportReadiness(); // Revisa si los botones deben habilitarse
+                renderTeamReportButtons(); // ** NUEVO: Renderizar botones de equipo **
             });
             
             // ** Listener para el cambio de Lista de Cotejo en Reportes **
-            document.getElementById('report-checklist').addEventListener('change', checkReportReadiness);
+            document.getElementById('report-checklist').addEventListener('change', () => {
+                checkReportReadiness();
+                renderTeamReportButtons(); // ** NUEVO: Renderizar botones de equipo **
+            });
 
             
             // Eliminar listeners antiguos (si existen) y añadir los nuevos
@@ -2571,6 +2998,7 @@
             }
 
             checkReportReadiness();
+            renderTeamReportButtons(); // Renderizar botones al cargar el módulo
         }
         
         // Función unificada para manejar la generación de reportes
@@ -3639,7 +4067,7 @@
                 }
             });
             
-            showModule('basic-data-module');
+            showModule('home-module'); // ** MUESTRA LA PANTALLA HOME POR DEFECTO **
 
             document.getElementById('check-all-students').addEventListener('change', (e) => {
                 toggleAllStudents(e.target.checked);
@@ -3649,4 +4077,3 @@
     </script>
 </body>
 </html>
-
