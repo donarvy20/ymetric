@@ -2732,14 +2732,14 @@
             
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text(`Integrantes del Equipo:`, 15, y);
-            y += 15;
+            doc.text(`Integrantes del Equipo:`, 10, y);
+            y += 10;
             
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
             let memberNames = studentsData.map(d => d.name);
             doc.text(memberNames, 10, y, { maxWidth: pageWidth - 20 });
-            y += (Math.ceil(memberNames.length / 3) * 4) + 5; 
+            y += (Math.ceil(memberNames.length / 3) * 4) + 8; 
 
             // --- TABLA DE CRITERIOS (Lista de Cotejo para el equipo) ---
             const criteriaHead = ['Criterio de Evaluación', 'Puntaje Promedio', 'Nivel Promedio'];
@@ -3816,6 +3816,7 @@
     </script>
 </body>
 </html>
+
 
 
 
