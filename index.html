@@ -2762,14 +2762,14 @@
                     const button = document.createElement('button');
                     button.className = 'btn btn-sm btn-outline-dark btn-icon rounded-pill team-report-btn';
                     button.style.borderColor = colorHex;
-                    button.style.color = colorHex;
-                    button.style.backgroundColor = colorHex + '33'; // 20% Opacidad
+                    button.style.color = 'black'; // Asegurar texto negro para mejor contraste en botones claros
+                    button.style.backgroundColor = colorHex + '50'; // 30% Opacidad
                     button.dataset.color = colorHex;
                     
                     button.innerHTML = `
-                        <span class="badge" style="background-color: ${colorHex}; color: black;">Equipo ${teamIndex} (${studentCount})</span>
-                        <span class="ms-2 small">${studentListPreview}</span>
-                        <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF (Enviar a)</span>
+                        <span class="badge" style="background-color: ${colorHex}; color: black; border: 1px solid black;">Equipo ${teamIndex} (${studentCount})</span>
+                        <span class="ms-2 small fw-bold text-dark">${studentListPreview}</span>
+                        <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF</span>
                     `;
                     teamReportContainer.appendChild(button);
                     
