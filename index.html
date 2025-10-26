@@ -2743,7 +2743,7 @@
                 const studentEvals = evaluations[student.id];
 
                 // Solo si tiene color asignado Y tiene puntajes guardados
-                if (color && studentEvals && studentEvals.reduce((sum, score) => sum + (score || 0), 0) > 0) {
+                if (color && studentEvals && studentEvals.filter(s => s > 0).length > 0) {
                     if (!colorMap[color]) {
                         colorMap[color] = [];
                     }
