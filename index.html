@@ -1601,23 +1601,208 @@
             modal.hide();
         });
 
-        function duplicateChecklist(checklistId) {
+
+
+
+
+
+        
+
+
+async function duplicateChecklist(checklistId) {
             const checklist = appData.checklists.find(c => c.id === checklistId);
-            if (checklist) {
-                 showToast(`¿Estás seguro de que deseas duplicar la lista "${checklist.name}"?`, 'info');
-                 setTimeout(() => {
-                    // Simulación de confirmación para evitar alert() nativo
-                    const newChecklist = JSON.parse(JSON.stringify(checklist));
-                    newChecklist.id = generateId();
-                    newChecklist.name = `(Copia) ${checklist.name}`;
-                    
-                    appData.checklists.push(newChecklist);
-                    saveData();
-                    renderChecklists();
-                    showToast('Lista de Cotejo duplicada exitosamente.', 'success');
-                 }, 1000);
+            if (!checklist) {
+                showToast('Lista de cotejo no encontrada.', 'danger');
+                return;
             }
+            
+            // CREAR LA COPIA INMEDIATAMENTE (duplicar de verdad)
+            showToast('Duplicando lista de cotejo...', 'info');
+            
+            const newChecklist = JSON.parse(JSON.stringify(checklist)); // Copia profunda
+            const newId = generateId();
+            newChecklist.id = newId;
+            newChecklist.name = `(Copia) ${checklist.name}`;
+            
+            // Guardar la nueva lista en la base de datos
+            appData.checklists.push(newChecklist);
+            saveData();
+            
+            // Actualizar la vista de listas
+            renderChecklists();
+            
+            showToast('Lista duplicada. Cargando datos para edición...', 'success');
+            
+            // Esperar un momento para asegurar que todo esté guardado
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Verificar que la lista existe
+            const verifyChecklist = appData.checklists.find(c => c.id === newId);
+            if (!verifyChecklist) {
+                showToast('Error: No se pudo crear la lista duplicada.', 'danger');
+                return;
+            }
+            
+            console.log('📋 Lista duplicada encontrada:', {
+                id: verifyChecklist.id,
+                nombre: verifyChecklist.name,
+                grupo: verifyChecklist.linkedGroupId,
+                categoria: verifyChecklist.linkedCategory,
+                niveles: verifyChecklist.levels?.length,
+                criterios: verifyChecklist.criteria?.length
+            });
+            
+            // Abrir el modal y luego cargar los datos
+            const checklistModalElement = document.getElementById('checklistModal');
+            const checklistModal = new bootstrap.Modal(checklistModalElement);
+            checklistModal.show();
+            
+            // Esperar a que el modal esté completamente visible
+            checklistModalElement.addEventListener('shown.bs.modal', function loadDuplicatedData() {
+                console.log('🔄 Modal abierto, cargando datos del ID:', newId);
+                fillChecklistModal(newId);
+                
+                // Verificar que los campos se llenaron
+                setTimeout(() => {
+                    const nombreCargado = document.getElementById('checklist-name').value;
+                    const criterioCargado = document.getElementById('checklist-criteria').value;
+                    console.log('✅ Datos cargados en el modal:', {
+                        nombre: nombreCargado,
+                        criterios: criterioCargado.length + ' caracteres'
+                    });
+                }, 100);
+                
+                // Remover el listener para evitar que se ejecute múltiples veces
+                checklistModalElement.removeEventListener('shown.bs.modal', loadDuplicatedData);
+            });
         }
+        
+        function fillChecklistModalForDuplication(sourceChecklistId) {
+            const checklist = appData.checklists.find(c => c.id === sourceChecklistId);
+            if (!checklist) {
+                showToast('No se encontró la lista de cotejo original.', 'danger');
+                return;
+            }
+            
+            const form = document.getElementById('checklist-form');
+            form.reset();
+            
+            // NO establecer ID (para que se cree una nueva lista)
+            document.getElementById('checklist-id').value = '';
+            
+            // Mostrar el contenedor de recarga de datos (verificar que existe)
+            const reloadContainer = document.getElementById('reload-data-container');
+            if (reloadContainer) {
+                reloadContainer.classList.remove('d-none');
+            }
+            
+            // 1. CARGAR NOMBRE DE LA LISTA DE COTEJO
+            document.getElementById('checklist-name').value = `(Copia) ${checklist.name}`;
+            
+            // 2. CARGAR GRUPO DESTINO (Plantilla de Categoría)
+            const groupLinkSelect = document.getElementById('checklist-group-link');
+            groupLinkSelect.innerHTML = '<option value="">-- Seleccionar Grupo --</option>';
+            appData.studentGroups.forEach(group => {
+                groupLinkSelect.innerHTML += `<option value="${group.id}">${group.name} (${group.section})</option>`;
+            });
+            
+            // Seleccionar el grupo vinculado de la lista original
+            groupLinkSelect.value = checklist.linkedGroupId || '';
+            
+            // 3. CARGAR CATEGORÍA DE EVALUACIÓN
+            const categoryLinkSelect = document.getElementById('checklist-category-link');
+            if (checklist.linkedGroupId) {
+                // Cargar las categorías del grupo seleccionado
+                loadCategoriesForChecklist(checklist.linkedGroupId, checklist.linkedCategory);
+            } else {
+                categoryLinkSelect.innerHTML = '<option value="">-- Seleccionar Categoría --</option>';
+            }
+            
+            // 4. CARGAR NIVELES DE EVALUACIÓN Y PUNTAJES
+            if (checklist.levels && checklist.levels.length > 0) {
+                renderLevelInputs(checklist.levels);
+            } else {
+                // Si no hay niveles, usar los predeterminados
+                renderLevelInputs([...defaultLevels]);
+            }
+            
+            // 5. CARGAR CRITERIOS DE EVALUACIÓN
+            if (checklist.criteria && checklist.criteria.length > 0) {
+                document.getElementById('checklist-criteria').value = checklist.criteria.join('\n');
+            } else {
+                document.getElementById('checklist-criteria').value = '';
+            }
+            
+            // Cambiar título del modal
+            document.getElementById('checklistModalLabel').textContent = 'Duplicar Lista de Cotejo: ' + checklist.name;
+            
+            // Log para debug
+            console.log('Datos cargados para duplicación:', {
+                nombre: checklist.name,
+                grupo: checklist.linkedGroupId,
+                categoria: checklist.linkedCategory,
+                niveles: checklist.levels?.length || 0,
+                criterios: checklist.criteria?.length || 0
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         
         function deleteChecklist(checklistId) {
             showToast('¿Estás seguro de que deseas eliminar esta Lista de Cotejo? Las evaluaciones que la usaron se verán afectadas.', 'danger');
@@ -3825,6 +4010,7 @@
     </script>
 </body>
 </html>
+
 
 
 
