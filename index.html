@@ -3641,94 +3641,189 @@ async function duplicateChecklist(checklistId) {
                     });
                 }
                 
-                if (type === 'summary') {
-                    // *************************************************************
-                    // REPORTE RESUMEN GRUPAL (VERTICAL)
-                    // *************************************************************
+               if (type === 'summary') {
+    // *************************************************************
+    // REPORTE RESUMEN GRUPAL (VERTICAL)
+    // *************************************************************
 
-                    let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
-                    
-                    y = 15; // Resetear Y
-                    
-                    // --- ENCABEZADO Y TÍTULO VISUAL ---
-                    doc.setFontSize(24);
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
-                    doc.text(`Evalyms+`, center, y, { align: 'center' });
-                    y += 5;
+    let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
+    
+    y = 15; // Resetear Y
+    
+    // --- ENCABEZADO Y TÍTULO VISUAL ---
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+    doc.text(`Evalyms+`, center, y, { align: 'center' });
+    y += 5;
 
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                    doc.text(reportTitle, center, y, { align: 'center' });
-                    y += 10;
-                    
-                    const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+    doc.text(reportTitle, center, y, { align: 'center' });
+    y += 10;
+    
+    const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
 
-                    doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
-                    doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
-                    doc.text(`Grupo: ${group.name} (${group.section})`, pageWidth - 10, y, { align: 'right' });
-                    doc.text(`Lista de Cotejo: ${checklist.name} (Cat: ${checklist.linkedCategory} - ${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
-                    doc.text(`Fecha: ${formattedDate}`, 10, y + 10);
-                    y += 15;
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+    doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+    doc.text(`Grupo: ${group.name} (${group.section})`, pageWidth - 10, y, { align: 'right' });
+    doc.text(`Lista de Cotejo: ${checklist.name} (Cat: ${checklist.linkedCategory} - ${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+    doc.text(`Fecha: ${formattedDate}`, 10, y + 10);
+    y += 15;
 
-                    let totalSumOfAverages = allStudentsData.reduce((sum, d) => sum + d.average, 0);
-                    let totalStudentsEvaluated = allStudentsData.filter(d => d.total > 0).length;
-                    
-                    const maxAvg = maxScorePerCriterion;
-                    const finalNormalizedAverage = totalStudentsEvaluated > 0
-                        ? totalSumOfAverages / totalStudentsEvaluated
-                        : 0;
+    let totalSumOfAverages = allStudentsData.reduce((sum, d) => sum + d.average, 0);
+    let totalStudentsEvaluated = allStudentsData.filter(d => d.total > 0).length;
+    
+    const maxAvg = maxScorePerCriterion;
+    const finalNormalizedAverage = totalStudentsEvaluated > 0
+        ? totalSumOfAverages / totalStudentsEvaluated
+        : 0;
 
-                    const performance = getPerformanceLevel(finalNormalizedAverage);
-                    const performanceName = performance.name;
+    const performance = getPerformanceLevel(finalNormalizedAverage);
+    const performanceName = performance.name;
 
+    // Filtrar criterios válidos (sin separadores)
+    const validCriteria = checklist.criteria.map((c, index) => ({ text: c, index: index }))
+        .filter(item => item.text !== '---');
 
-                    const head = [
-                        ['Estudiante', `Puntaje Total (Max ${totalMaxScore})`, `Promedio (Max ${maxAvg.toFixed(1)})`, 'Nivel de Desempeño']
-                    ];
-                    const body = allStudentsData.map(data => [
-                        data.name,
-                        data.total.toString(),
-                        data.average.toFixed(1),
-                        data.performance
-                    ]);
+    // Construir encabezados de columnas
+    const head = [['Estudiante']];
+    
+    // Agregar columnas de criterios
+    validCriteria.forEach((criterion, i) => {
+        head[0].push(`C${i + 1}`); // C1, C2, C3, etc.
+    });
+    
+    // Agregar columnas finales
+    head[0].push(`Total (${totalMaxScore})`);
+    head[0].push(`Prom (${maxAvg.toFixed(1)})`);
+    head[0].push('Nivel de Desempeño');
 
-                    doc.autoTable({
-                        head: head,
-                        body: body,
-                        startY: y + 5, 
-                        theme: 'grid',
-                        headStyles: { 
-                            fillColor: PRIMARY_BLUE, 
-                            textColor: 255, 
-                            fontStyle: 'bold' 
-                        }, 
-                        styles: { fontSize: 10 },
-                        // Color rows based on performance level
-                        didParseCell: (data) => {
-                            if (data.section === 'body' && (data.column.index === data.row.raw.length - 1)) {
-                                const level = data.cell.raw;
-                                data.cell.styles.fillColor = getPerformanceColorRGB(level);
-                                data.cell.styles.textColor = (level === 'Proceso' || level === 'Previo al Inicio') ? BLACK : [255, 255, 255]; 
-                                data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
-                            }
-                        },
-                        foot: [
-                            ['RESUMEN GRUPAL:', totalMaxScore.toString(), `PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}`, `NIVEL: ${performanceName}`]
-                        ],
-                        footStyles: { 
-                            fillColor: SECONDARY_GRAY, 
-                            textColor: 255, 
-                            fontStyle: 'bold' 
-                        }
-                    });
+    // Construir cuerpo de la tabla
+    const body = allStudentsData.map(data => {
+        const row = [data.name];
+        
+        // Agregar puntajes de cada criterio
+        validCriteria.forEach(criterion => {
+            const score = data.evals[criterion.index] || 0;
+            row.push(score > 0 ? score.toString() : '-');
+        });
+        
+        // Agregar totales y desempeño
+        row.push(data.total.toString());
+        row.push(data.average.toFixed(1));
+        row.push(data.performance);
+        
+        return row;
+    });
+
+    doc.autoTable({
+        head: head,
+        body: body,
+        startY: y + 5, 
+        theme: 'grid',
+        headStyles: { 
+            fillColor: PRIMARY_BLUE, 
+            textColor: 255, 
+            fontStyle: 'bold',
+            fontSize: 8,
+            halign: 'center'
+        }, 
+        styles: { 
+            fontSize: 8,
+            cellPadding: 1.5,
+            textColor: BLACK // ⬅️ TEXTO NEGRO POR DEFECTO
+        },
+        columnStyles: {
+            0: { cellWidth: 35, halign: 'left' } // Columna Estudiante
+        },
+        didParseCell: (data) => {
+            const totalCols = data.table.columns.length;
+            const criteriaColsCount = validCriteria.length;
+            
+            // Centrar todas las columnas excepto la de estudiante
+            if (data.column.index > 0) {
+                data.cell.styles.halign = 'center';
+            }
+            
+            // ⬇️⬇️⬇️ CAMBIO AQUÍ: NO colorear celdas de criterios ⬇️⬇️⬇️
+            // Las columnas de criterios mantienen el color blanco de fondo
+            // y texto negro (definido en styles general)
+            if (data.section === 'body' && data.column.index > 0 && data.column.index <= criteriaColsCount) {
+                data.cell.styles.fontStyle = 'bold'; // Solo ponerlos en negrita
+                data.cell.styles.textColor = BLACK; // Texto negro
+                // NO se colorea el fondo (fillColor)
+            }
+            // ⬆️⬆️⬆️ FIN DEL CAMBIO ⬆️⬆️⬆️
+            
+            // Colorear SOLO la columna de Nivel de Desempeño (última columna)
+            if (data.section === 'body' && data.column.index === totalCols - 1) {
+                const level = data.cell.raw;
+                data.cell.styles.fillColor = getPerformanceColorRGB(level);
+                data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+                data.cell.styles.fontStyle = 'bold';
+            }
+            
+            // Resaltar columnas Total y Promedio (solo negrita, sin color)
+            if (data.section === 'body' && (data.column.index === totalCols - 3 || data.column.index === totalCols - 2)) {
+                data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.textColor = BLACK;
+            }
+        },
+        foot: [
+            (() => {
+                const footRow = ['RESUMEN GRUPAL:'];
+                // Agregar guiones para las columnas de criterios
+                for (let i = 0; i < validCriteria.length; i++) {
+                    footRow.push('-');
                 }
+                // Agregar el promedio final (ocupa 2 columnas: Total y Promedio)
+                footRow.push({ content: `PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}`, colSpan: 2 });
+                // Agregar nivel de desempeño
+                footRow.push(`${performanceName}`);
+                return footRow;
+            })()
+        ],
+        footStyles: { 
+            fillColor: SECONDARY_GRAY, 
+            textColor: 255, 
+            fontStyle: 'bold',
+            fontSize: 8,
+            halign: 'center'
+        }
+    });
+    
+    // Agregar leyenda de criterios al final
+    let legendY = doc.autoTable.previous.finalY + 5;
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('LEYENDA DE CRITERIOS:', 10, legendY);
+    legendY += 4;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    
+    validCriteria.forEach((criterion, i) => {
+        const criterionText = `C${i + 1}: ${criterion.text}`;
+        const splitText = doc.splitTextToSize(criterionText, pageWidth - 20);
+        doc.text(splitText, 10, legendY);
+        legendY += splitText.length * 3;
+        
+        // Si nos acercamos al final de la página, agregar nueva página
+        if (legendY > doc.internal.pageSize.getHeight() - 20) {
+            doc.addPage();
+            legendY = 15;
+        }
+    });
+}
 
-                doc.save(fileName);
-                showToast(`Reporte ${type} generado como PDF.`, 'success');
+doc.save(fileName);
+showToast(`Reporte ${type} generado como PDF.`, 'success');
             }
         }
 
@@ -4010,6 +4105,7 @@ async function duplicateChecklist(checklistId) {
     </script>
 </body>
 </html>
+
 
 
 
