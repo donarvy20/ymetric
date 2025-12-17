@@ -3256,6 +3256,16 @@ function roundCustom(average) {
             return 0; 
         }
 
+
+
+
+
+
+
+
+
+        
+/*
         function calculateFinalConsolidatedResults(groupId, studentId) {
             const group = appData.studentGroups.find(g => g.id === groupId);
             const evaluations = appData.evaluations[groupId];
@@ -3333,7 +3343,7 @@ function roundCustom(average) {
             } else {
                 const allNotes = Object.values(categoryNotesData).flatMap(data => data.notes);
                 const sumOfNotes = allNotes.reduce((sum, note) => sum + note, 0);
-                finalScore = sumOfNotes / allNotes.length;
+              finalScore = allNotes.length > 0 ? allNotes.reduce((sum, note) => sum + note, 0) / allNotes.length : 0;
             }
 
             // 3. Mapeo a Desempeño y Vigesimal
@@ -3346,6 +3356,105 @@ function roundCustom(average) {
                 performance: finalPerformance.name
             };
         }
+
+*/
+
+
+
+
+
+function calculateFinalConsolidatedResults(groupId, studentId) {
+    const group = appData.studentGroups.find(g => g.id === groupId);
+    const evaluations = appData.evaluations[groupId];
+    if (!group || !evaluations) return { finalScore: 0, vigesimal: 0, performance: getPerformanceLevel(0).name };
+
+    // 1. Obtener todas las listas de cotejo vinculadas AL GRUPO (no solo las evaluadas)
+    const allChecklistsForGroup = appData.checklists.filter(c => c.linkedGroupId === groupId);
+    if (allChecklistsForGroup.length === 0) {
+        return { finalScore: 0, vigesimal: 0, performance: getPerformanceLevel(0).name };
+    }
+
+    // 2. Configuración de ponderación
+    const categoryMap = {};
+    let usePonderation = false;
+    if (group.categories && group.categories.list.length > 0) {
+        group.categories.list.forEach(cat => {
+            categoryMap[cat.name] = cat.weight / 100;
+        });
+        const totalWeight = Object.values(categoryMap).reduce((sum, w) => sum + w, 0);
+        if (Math.abs(totalWeight - 1.0) < 0.001) {
+            usePonderation = true;
+        }
+    }
+
+    // 3. Inicializar datos por categoría con todas las listas (incluso no evaluadas)
+    let categoryNotesData = {};
+    allChecklistsForGroup.forEach(checklist => {
+        const categoryName = checklist.linkedCategory || 'GENERAL';
+        const categoryWeight = categoryMap[categoryName] || 0;
+        if (!categoryNotesData[categoryName]) {
+            categoryNotesData[categoryName] = { 
+                notes: [], 
+                totalCategoryWeight: categoryWeight,
+                checklistsCount: 0
+            };
+        }
+        categoryNotesData[categoryName].checklistsCount++;
+    });
+
+    // 4. Asignar notas reales (o 0 si no evaluado)
+    allChecklistsForGroup.forEach(checklist => {
+        const categoryName = checklist.linkedCategory || 'GENERAL';
+        const studentEvals = evaluations[checklist.id] ? evaluations[checklist.id][studentId] : null;
+        const validCriteriaCount = checklist.criteria.filter(c => c !== '---').length;
+        let noteBase5 = 0; // Por defecto, no evaluado = 0
+
+        if (studentEvals && validCriteriaCount > 0) {
+            const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+            const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+            noteBase5 = totalScore / validCriteriaCount;
+        }
+
+        categoryNotesData[categoryName].notes.push(noteBase5);
+    });
+
+    // 5. Calcular el promedio final
+    let finalScore = 0;
+    if (usePonderation) {
+        let weightedSumOfNotes = 0;
+        Object.entries(categoryNotesData).forEach(([categoryName, data]) => {
+            if (data.notes.length > 0) {
+                const distributedWeight = data.totalCategoryWeight / data.checklistsCount;
+                data.notes.forEach(note => {
+                    weightedSumOfNotes += note * distributedWeight;
+                });
+            }
+        });
+        finalScore = weightedSumOfNotes;
+    } else {
+        // Promedio simple sobre TODOS los trabajos del grupo
+        const allNotes = Object.values(categoryNotesData).flatMap(data => data.notes);
+        finalScore = allNotes.length > 0 ? allNotes.reduce((sum, note) => sum + note, 0) / allNotes.length : 0;
+    }
+
+    // 6. Mapeo a Desempeño y Vigesimal (¡ahora con el promedio CORRECTO!)
+    const finalPerformance = getPerformanceLevel(finalScore);
+    const vigesimal = mapToVigesimal(finalScore);
+
+    return {
+        finalScore: finalScore,
+        vigesimal: vigesimal,
+        performance: finalPerformance.name
+    };
+}
+
+
+
+
+
+
+
+        
 
 
         function generatePDFReport(groupId, checklistId, type) {
@@ -3421,7 +3530,7 @@ function roundCustom(average) {
                     });
 
                     // 4. Agregar resultados finales CONSOLIDADOS
-                    studentRow.push(roundCustom(finalResults.finalScore).toString());
+                    studentRow.push(finalResults.finalScore.toFixed(1));
                     studentRow.push(finalResults.vigesimal.toString());
                     studentRow.push(finalResults.performance);
                     
@@ -4143,6 +4252,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
