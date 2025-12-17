@@ -3413,7 +3413,8 @@ function roundCustom(average) {
                             const currentScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
                             const noteBase5 = validCriteriaCountCL > 0 ? currentScore / validCriteriaCountCL : 0;
                             
-                            studentRow.push(noteBase5.toFixed(2)); 
+                             // ✅ Aplicar redondeo personalizado a la nota individual de la lista
+                                studentRow.push(roundCustom(noteBase5).toString()); 
                         } else {
                             studentRow.push('N/A');
                         }
@@ -4142,6 +4143,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
