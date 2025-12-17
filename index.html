@@ -2257,9 +2257,9 @@ async function duplicateChecklist(checklistId) {
             const avg = parseFloat(average.toFixed(1)); 
 
             if (avg >= 5.0) return { name: 'Destacado', class: 'performance-destacado' };
-            if (avg >= 4.0) return { name: 'Logrado', class: 'performance-logrado' };
-            if (avg >= 3.0) return { name: 'Proceso', class: 'performance-proceso' };
-            if (avg >= 2.0) return { name: 'Inicio', class: 'performance-inicio' };
+            if (avg >= 3.6) return { name: 'Logrado', class: 'performance-logrado' };
+            if (avg >= 2.6) return { name: 'Proceso', class: 'performance-proceso' };
+            if (avg >= 1.6) return { name: 'Inicio', class: 'performance-inicio' };
             return { name: 'Previo al Inicio', class: 'performance-previo' };
         }
 
@@ -4105,6 +4105,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
