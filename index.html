@@ -3191,7 +3191,9 @@ function roundCustom(average) {
                                 <tr>
                                     <td class="text-start">${data.name}</td>
                                     <td>${data.total}</td>
-                                    <td>${data.average.toFixed(1)}</td>
+                                    
+                                    <td>${roundCustom(data.average)}</td> <!-- ✅ Aplicado roundCustom -->
+
                                     <td class="${data.performanceClass} fw-bold">${data.performance}</td>
                                 </tr>
                             `).join('')}
@@ -3199,7 +3201,7 @@ function roundCustom(average) {
                         <tfoot class="table-dark">
                             <tr>
                                 <td class="text-start fw-bold">RESUMEN GRUPAL:</td>
-                                <td colspan="2" class="fw-bold">PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}</td>
+                                 <td colspan="2" class="fw-bold">PROMEDIO FINAL: ${roundCustom(finalNormalizedAverage)}</td> <!-- ✅ Aplicado roundCustom -->
                                 <td class="${groupPerformance.class.replace('performance-', 'bg-')} fw-bold">${groupPerformance.name}</td>
                             </tr>
                         </tfoot>
@@ -4140,6 +4142,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
