@@ -2253,6 +2253,41 @@ async function duplicateChecklist(checklistId) {
             }
         });
 
+
+
+
+        /*-----------------------------REDONDEO 0.6-------------------------*/
+        
+function roundCustom(average) {
+    const avg = parseFloat(average);
+    if (avg >= 4.0 && avg <= 4.9) {
+        return 4;
+    }
+    if (avg - Math.floor(avg) >= 0.6) {
+        return Math.ceil(avg);
+    }
+    return Math.floor(avg);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         function getPerformanceLevel(average) {
             const avg = parseFloat(average.toFixed(1)); 
 
@@ -2425,7 +2460,7 @@ async function duplicateChecklist(checklistId) {
                             `;
                         }).join('')}
                         <td class="total-score fw-bold">${totalScore}</td>
-                        <td class="average-score fw-bold">${average.toFixed(1)}</td>
+                     <td class="average-score fw-bold">${roundCustom(average)}</td>
                         <td class="performance-level ${performance.class}">${performance.name}</td>
                     </tr>
                 `;
@@ -2460,7 +2495,7 @@ async function duplicateChecklist(checklistId) {
             const row = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
             if (row) {
                 row.querySelector('.total-score').textContent = totalScore;
-                row.querySelector('.average-score').textContent = average.toFixed(1);
+              row.querySelector('.average-score').textContent = roundCustom(average);
                 
                 const perfCell = row.querySelector('.performance-level');
                 perfCell.textContent = performance.name;
@@ -3383,7 +3418,7 @@ async function duplicateChecklist(checklistId) {
                     });
 
                     // 4. Agregar resultados finales CONSOLIDADOS
-                    studentRow.push(finalResults.finalScore.toFixed(2));
+                    studentRow.push(roundCustom(finalResults.finalScore).toString());
                     studentRow.push(finalResults.vigesimal.toString());
                     studentRow.push(finalResults.performance);
                     
@@ -3614,7 +3649,7 @@ async function duplicateChecklist(checklistId) {
                         finalY += 7;
 
                         doc.text(`PROMEDIO (Máx ${maxScorePerCriterion.toFixed(1)}):`, summaryX + 5, finalY);
-                        doc.text(`${studentData.average}`, summaryX + 70, finalY);
+                       doc.text(`${roundCustom(studentData.average)}`, summaryX + 70, finalY);
                         finalY += 10;
                         
                         // Performance highlight (inside the box)
@@ -3714,7 +3749,7 @@ async function duplicateChecklist(checklistId) {
         
         // Agregar totales y desempeño
         row.push(data.total.toString());
-        row.push(data.average.toFixed(1));
+        row.push(roundCustom(data.average).toString());
         row.push(data.performance);
         
         return row;
@@ -3781,7 +3816,7 @@ async function duplicateChecklist(checklistId) {
                     footRow.push('-');
                 }
                 // Agregar el promedio final (ocupa 2 columnas: Total y Promedio)
-                footRow.push({ content: `PROMEDIO FINAL: ${finalNormalizedAverage.toFixed(2)}`, colSpan: 2 });
+               footRow.push({ content: `PROMEDIO FINAL: ${roundCustom(finalNormalizedAverage)}`, colSpan: 2 });
                 // Agregar nivel de desempeño
                 footRow.push(`${performanceName}`);
                 return footRow;
@@ -4105,6 +4140,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
