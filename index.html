@@ -2489,9 +2489,9 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
             
             const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
             const criteriaCount = evaluatedScores.length;
-
-            const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-            const performance = getPerformanceLevel(average);
+const averageRaw = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+const averageRounded = roundCustom(averageRaw);
+const performance = getPerformanceLevel(averageRounded);;
 
             const row = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
             if (row) {
@@ -4308,6 +4308,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
