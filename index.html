@@ -3363,7 +3363,7 @@ function roundCustom(average) {
 
 
 
-function calculateFinalConsolidatedResults(groupId, studentId) {
+function calculateFinalConsolidatedResults(groupId, studentId, evaluatedChecklists = null) {
     const group = appData.studentGroups.find(g => g.id === groupId);
     const evaluations = appData.evaluations[groupId];
     if (!group || !evaluations) return { finalScore: 0, vigesimal: 0, performance: getPerformanceLevel(0).name };
@@ -3510,7 +3510,7 @@ function calculateFinalConsolidatedResults(groupId, studentId) {
                 group.students.forEach(student => {
                     let studentRow = [student.name];
                     
-                    const finalResults = calculateFinalConsolidatedResults(groupId, student.id);
+                    const finalResults = calculateFinalConsolidatedResults(groupId, student.id, allChecklistsForGroup);
 
                     // Llenar las columnas de evaluación individuales (por lista de cotejo)
                     evaluatedChecklists.forEach(cl => {
@@ -4252,6 +4252,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
