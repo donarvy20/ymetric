@@ -3159,8 +3159,14 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
                 const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
                 const criteriaCount = evaluatedScores.length;
 
-                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                const performance = getPerformanceLevel(average);
+
+                
+               const averageRaw = totalScore / criteriaCount;
+const averageRounded = roundCustom(averageRaw); // ✅ Redondeado
+const performance = getPerformanceLevel(averageRounded); // ✅ Basado en el redondeado
+
+
+                
                 const performanceClass = performance.class.replace('performance-', 'bg-');
 
                 return {
@@ -4323,6 +4329,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
