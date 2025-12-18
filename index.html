@@ -3479,143 +3479,198 @@ function calculateFinalConsolidatedResults(groupId, studentId, evaluatedChecklis
             const formattedDate = today.toLocaleDateString('es-ES', dateOptions);
 
             
-            if (type === 'consolidated') {
-                // *************************************************************
-                // REPORTE CONSOLIDADO POR GRUPO (HORIZONTAL)
-                // *************************************************************
-                
-                const evaluatedChecklists = Object.keys(evaluations)
-                    .map(id => appData.checklists.find(c => c.id === id))
-                    .filter(c => c !== undefined && c.linkedGroupId === groupId); 
 
-                if (evaluatedChecklists.length === 0) {
-                    showToast('No hay evaluaciones guardadas para este grupo.', 'danger');
-                    return;
-                }
-                
-                // 1. Preparar el encabezado de la tabla
-                let head = ['Estudiante'];
-                
-                evaluatedChecklists.forEach(cl => {
-                    const categoryWeight = group.categories.list.find(c => c.name === cl.linkedCategory)?.weight || 100;
-                    const checklistName = `${cl.name} (${categoryWeight}%)`;
-                    head.push(checklistName);
-                });
 
-                head.push('Situación Final (Base 5)', 'Vigesimal (Base 20)', 'Nivel Desempeño');
 
-                // 2. Preparar el cuerpo y calcular resultados consolidados
-                let body = [];
-                
-                group.students.forEach(student => {
-                    let studentRow = [student.name];
-                    
-                    const finalResults = calculateFinalConsolidatedResults(groupId, student.id, allChecklistsForGroup);
 
-                    // Llenar las columnas de evaluación individuales (por lista de cotejo)
-                    evaluatedChecklists.forEach(cl => {
-                        const studentEvals = evaluations[cl.id] ? evaluations[cl.id][student.id] : null;
-                        const validCriteriaCountCL = cl.criteria.filter(c => c !== '---').length;
-                        
-                        if (studentEvals) {
-                            const evaluatedScores = studentEvals.filter((_, index) => cl.criteria[index] !== '---');
-                            const currentScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
-                            const noteBase5 = validCriteriaCountCL > 0 ? currentScore / validCriteriaCountCL : 0;
-                            
-                             // ✅ Aplicar redondeo personalizado a la nota individual de la lista
-                                studentRow.push(roundCustom(noteBase5).toString()); 
-                        } else {
-                            studentRow.push('N/A');
-                        }
-                    });
 
-                    // 4. Agregar resultados finales CONSOLIDADOS
-                    studentRow.push(finalResults.finalScore.toFixed(1));
-                    studentRow.push(finalResults.vigesimal.toString());
-                    studentRow.push(finalResults.performance);
-                    
-                    body.push(studentRow);
-                });
 
-                // 5. Generar PDF
-                doc.setFontSize(20);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
-                doc.text(`Evalyms+ Reporte Consolidado`, center, y, { align: 'center' });
-                y += 5;
 
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                doc.text(`Grupo: ${group.name} (${group.section})`, center, y, { align: 'center' });
-                y += 5;
 
-                doc.setFontSize(10);
-                doc.text(`Institución: ${appData.institution || 'N/A'} | Docente: ${appData.teacher || 'N/A'}`, center, y, { align: 'center' });
-                y += 5;
-                doc.text(`Fecha de Generación: ${formattedDate}`, center, y, { align: 'center' });
-                y += 8;
 
-                doc.autoTable({
-                    head: [head],
-                    body: body,
-                    startY: y,
-                    theme: 'grid',
-                    headStyles: { fillColor: PRIMARY_BLUE, textColor: 255, fontStyle: 'bold', fontSize: 8 },
-                    styles: { fontSize: 8.5 },
-                    didParseCell: (data) => {
-                         const totalCols = data.row.raw.length;
-                         const isFinalLevelCol = data.column.index === totalCols - 1;
-                         const isFinalBase20Col = data.column.index === totalCols - 2;
-                         const isFinalBase5Col = data.column.index === totalCols - 3;
 
-                         if (data.section === 'body' && isFinalLevelCol) { 
-                            const level = data.cell.raw;
-                            data.cell.styles.fillColor = getPerformanceColorRGB(level);
-                            data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
-                            data.cell.styles.fontStyle = 'bold'; 
-                         }
-                         if (data.section === 'body' && (isFinalBase20Col || isFinalBase5Col)) {
-                            data.cell.styles.fontStyle = 'bold'; 
-                            data.cell.styles.fillColor = [220, 220, 220]; 
-                         }
-                    }
-                });
 
-                let finalY = doc.autoTable.previous.finalY + 5;
-                doc.setFontSize(8);
-                doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
-                
-                const formulaText = group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1 
-                    ? 'La Situación Final (SF) se calcula como la sumatoria de [ (Promedio Base 5 por Lista) × (Peso Total de Categoría / # Listas en esa Categoría) ].'
-                    : 'La Situación Final (SF) se calcula como el promedio simple de las Notas Base 5 de todas las evaluaciones.';
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text('Fórmula de Situación Final (SF):', 10, finalY);
-                finalY += 4;
-                doc.setFont('helvetica', 'normal');
-                
-                let formulaDetails = [];
-                if (group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1) {
-                    formulaDetails = [
-                        'SF = Σ [ (Promedio Base 5 de la Lista) × (Peso Total de Categoría / Número de Listas en esa Categoría) ]'
-                    ];
-                } else {
-                    formulaDetails = [
-                        'SF = Σ (Promedio Base 5 de todas las Listas) / (Número Total de Listas Evaluadas)'
-                    ];
-                }
-                formulaDetails.forEach(line => {
-                    doc.text(line, 10, finalY);
-                    finalY += 4;
-                });
-                
-                doc.text('El Puntaje Base 20 (Vigesimal) se mapea a partir de la Situación Final (Base 5) según la Escala de Conversión.', 10, finalY + 4);
-                
-                doc.save(`Consolidado_${group.name.replace(/\s/g, '_')}.pdf`);
-                showToast(`Reporte Consolidado generado con éxito.`, 'success');
-                return;
+
+
+
+if (type === 'consolidated') {
+    // *************************************************************
+    // REPORTE CONSOLIDADO POR GRUPO (HORIZONTAL)
+    // *************************************************************
+    const evaluatedChecklists = Object.keys(evaluations)
+        .map(id => appData.checklists.find(c => c.id === id))
+        .filter(c => c !== undefined && c.linkedGroupId === groupId); 
+    if (evaluatedChecklists.length === 0) {
+        showToast('No hay evaluaciones guardadas para este grupo.', 'danger');
+        return;
+    }
+
+    // 1. Preparar el encabezado de la tabla
+    let head = ['Estudiante'];
+    evaluatedChecklists.forEach(cl => {
+        const categoryWeight = group.categories.list.find(c => c.name === cl.linkedCategory)?.weight || 100;
+        const checklistName = `${cl.name} (${categoryWeight}%)`;
+        head.push(checklistName);
+    });
+    head.push('Situación Final (Base 5)', 'Vigesimal (Base 20)', 'Nivel Desempeño');
+
+    // 2. Preparar el cuerpo
+    let body = [];
+    group.students.forEach(student => {
+        let studentRow = [student.name];
+        let totalScoreSum = 0; // Suma de todas las notas Base 5 de las listas mostradas
+        let validListCount = 0; // Contador de listas que tienen nota (no N/A)
+
+        // Llenar las columnas de evaluación individuales (por lista de cotejo)
+        evaluatedChecklists.forEach(cl => {
+            const studentEvals = evaluations[cl.id] ? evaluations[cl.id][student.id] : null;
+            const validCriteriaCountCL = cl.criteria.filter(c => c !== '---').length;
+            if (studentEvals) {
+                const evaluatedScores = studentEvals.filter((_, index) => cl.criteria[index] !== '---');
+                const currentScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+                const noteBase5 = validCriteriaCountCL > 0 ? currentScore / validCriteriaCountCL : 0;
+                // ✅ Aplicar redondeo personalizado a la nota individual de la lista
+                const roundedNote = roundCustom(noteBase5);
+                studentRow.push(roundedNote.toString());
+                totalScoreSum += roundedNote; // Acumular la nota redondeada
+                validListCount++; // Incrementar contador
+            } else {
+                studentRow.push('N/A');
             }
+        });
+
+        // 3. Calcular la Situación Final (Base 5) como el promedio de las notas mostradas
+        const finalScore = validListCount > 0 ? totalScoreSum / validListCount : 0;
+
+        // 4. Mapear a Vigesimal y Nivel de Desempeño
+        const finalPerformance = getPerformanceLevel(finalScore);
+        const vigesimal = mapToVigesimal(finalScore);
+
+        // 5. Agregar resultados finales
+        studentRow.push(finalScore.toFixed(1));
+        studentRow.push(vigesimal.toString());
+        studentRow.push(finalPerformance.name);
+
+        body.push(studentRow);
+    });
+
+    // 6. Generar PDF (el resto del código permanece igual)
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+    doc.text(`Evalyms+ Reporte Consolidado`, center, y, { align: 'center' });
+    y += 5;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+    doc.text(`Grupo: ${group.name} (${group.section})`, center, y, { align: 'center' });
+    y += 5;
+    doc.setFontSize(10);
+    doc.text(`Institución: ${appData.institution || 'N/A'} | Docente: ${appData.teacher || 'N/A'}`, center, y, { align: 'center' });
+    y += 5;
+    doc.text(`Fecha de Generación: ${formattedDate}`, center, y, { align: 'center' });
+    y += 8;
+    doc.autoTable({
+        head: [head],
+        body: body,
+        startY: y,
+        theme: 'grid',
+        headStyles: { fillColor: PRIMARY_BLUE, textColor: 255, fontStyle: 'bold', fontSize: 8 },
+        styles: { fontSize: 8.5 },
+        didParseCell: (data) => {
+             const totalCols = data.row.raw.length;
+             const isFinalLevelCol = data.column.index === totalCols - 1;
+             const isFinalBase20Col = data.column.index === totalCols - 2;
+             const isFinalBase5Col = data.column.index === totalCols - 3;
+             if (data.section === 'body' && isFinalLevelCol) { 
+                const level = data.cell.raw;
+                data.cell.styles.fillColor = getPerformanceColorRGB(level);
+                data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+                data.cell.styles.fontStyle = 'bold'; 
+             }
+             if (data.section === 'body' && (isFinalBase20Col || isFinalBase5Col)) {
+                data.cell.styles.fontStyle = 'bold'; 
+                data.cell.styles.fillColor = [220, 220, 220]; 
+             }
+        }
+    });
+    let finalY = doc.autoTable.previous.finalY + 5;
+    doc.setFontSize(8);
+    doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+    const formulaText = group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1 
+        ? 'La Situación Final (SF) se calcula como la sumatoria de [ (Promedio Base 5 por Lista) × (Peso Total de Categoría / # Listas en esa Categoría) ].'
+        : 'La Situación Final (SF) se calcula como el promedio simple de las Notas Base 5 de todas las evaluaciones.';
+    doc.setFont('helvetica', 'bold');
+    doc.text('Fórmula de Situación Final (SF):', 10, finalY);
+    finalY += 4;
+    doc.setFont('helvetica', 'normal');
+    let formulaDetails = [];
+    if (group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1) {
+        formulaDetails = [
+            'SF = Σ [ (Promedio Base 5 de la Lista) × (Peso Total de Categoría / Número de Listas en esa Categoría) ]'
+        ];
+    } else {
+        formulaDetails = [
+            'SF = Σ (Promedio Base 5 de todas las Listas) / (Número Total de Listas Evaluadas)'
+        ];
+    }
+    formulaDetails.forEach(line => {
+        doc.text(line, 10, finalY);
+        finalY += 4;
+    });
+    doc.text('El Puntaje Base 20 (Vigesimal) se mapea a partir de la Situación Final (Base 5) según la Escala de Conversión.', 10, finalY + 4);
+    doc.save(`Consolidado_${group.name.replace(/\s/g, '_')}.pdf`);
+    showToast(`Reporte Consolidado generado con éxito.`, 'success');
+    return;
+                 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
             
             if (type === 'detailed' || type === 'summary') {
                 // --- CÁLCULOS ESTÁNDAR (SUMMARY / DETAILED) ---
@@ -4252,6 +4307,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
