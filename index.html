@@ -2477,68 +2477,83 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
             
             document.getElementById('student-search').dispatchEvent(new Event('keyup'));
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
-        function updateStudentResults(studentId, groupId, checklistId) {
-            const group = appData.studentGroups.find(g => g.id === groupId);
-            const checklist = appData.checklists.find(c => c.id === checklistId);
-            
-            const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
-            
-            // Solo considerar los scores de los criterios que no son separadores
-            const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
-            
-            const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
-            const criteriaCount = evaluatedScores.length;
-const averageRaw = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-const averageRounded = roundCustom(averageRaw);
-const performance = getPerformanceLevel(averageRounded);;
-
-            const row = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
-            if (row) {
-                row.querySelector('.total-score').textContent = totalScore;
-              row.querySelector('.average-score').textContent = roundCustom(average);
-                
-                const perfCell = row.querySelector('.performance-level');
-                perfCell.textContent = performance.name;
-                perfCell.className = 'performance-level ' + performance.class;
-                
-                updateEvaluationCheckIcon(studentId, row, checklist);
-                
-                // Actualizar apariencia de botones dentro de la tabla
-                const scoreCells = row.querySelectorAll('td[data-criterion-index]');
-                scoreCells.forEach(cell => {
-                    const criterionIndex = parseInt(cell.dataset.criterionIndex, 10);
-                    const score = studentEvals[criterionIndex] || 0;
-
-                    cell.querySelectorAll('.cell-score-btn').forEach(btn => {
-                        const btnScore = parseInt(btn.dataset.score, 10);
-                        btn.classList.toggle('active-score', btnScore === score);
-                    });
-                });
-                
-                // Actualización del color de fondo de la celda de nombre/checkbox
-                const studentData = group.students.find(s => s.id === studentId);
-                const isEvaluated = totalScore > 0;
-                
-                if (studentData) {
-                    const groupColor = studentData.groupEvalColors[checklistId];
-                    const nameCell = row.querySelector('td:first-child');
-                    const checkbox = row.querySelector('.student-checkbox');
-                    
-                    if (!isEvaluated) {
-                        nameCell.style.backgroundColor = '';
-                        checkbox.removeAttribute('style');
-                        checkbox.classList.remove('group-colored');
-                        delete studentData.groupEvalColors[checklistId];
-                    } else if (groupColor) {
-                        nameCell.style.backgroundColor = groupColor;
-                        checkbox.style.backgroundColor = groupColor;
-                        checkbox.style.borderColor = groupColor;
-                        checkbox.classList.add('group-colored');
-                    }
-                }
+       function updateStudentResults(studentId, groupId, checklistId) {
+    const group = appData.studentGroups.find(g => g.id === groupId);
+    const checklist = appData.checklists.find(c => c.id === checklistId);
+    const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
+    // Solo considerar los scores de los criterios que no son separadores
+    const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+    const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+    const criteriaCount = evaluatedScores.length;
+    const averageRaw = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+    const averageRounded = roundCustom(averageRaw); // ✅ Redondeado
+    const performance = getPerformanceLevel(averageRounded); // ✅ Basado en el redondeado
+    const row = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
+    if (row) {
+        row.querySelector('.total-score').textContent = totalScore;
+        row.querySelector('.average-score').textContent = averageRounded; // ✅ Mostrar redondeado
+        const perfCell = row.querySelector('.performance-level');
+        perfCell.textContent = performance.name;
+        perfCell.className = 'performance-level ' + performance.class;
+        updateEvaluationCheckIcon(studentId, row, checklist);
+        // Actualizar apariencia de botones dentro de la tabla
+        const scoreCells = row.querySelectorAll('td[data-criterion-index]');
+        scoreCells.forEach(cell => {
+            const criterionIndex = parseInt(cell.dataset.criterionIndex, 10);
+            const score = studentEvals[criterionIndex] || 0;
+            cell.querySelectorAll('.cell-score-btn').forEach(btn => {
+                const btnScore = parseInt(btn.dataset.score, 10);
+                btn.classList.toggle('active-score', btnScore === score);
+            });
+        });
+        // Actualización del color de fondo de la celda de nombre/checkbox
+        const studentData = group.students.find(s => s.id === studentId);
+        const isEvaluated = totalScore > 0;
+        if (studentData) {
+            const groupColor = studentData.groupEvalColors[checklistId];
+            const nameCell = row.querySelector('td:first-child');
+            const checkbox = row.querySelector('.student-checkbox');
+            if (!isEvaluated) {
+                nameCell.style.backgroundColor = '';
+                checkbox.removeAttribute('style');
+                checkbox.classList.remove('group-colored');
+                delete studentData.groupEvalColors[checklistId];
+            } else if (groupColor) {
+                nameCell.style.backgroundColor = groupColor;
+                checkbox.style.backgroundColor = groupColor;
+                checkbox.style.borderColor = groupColor;
+                checkbox.classList.add('group-colored');
             }
         }
+    }
+}
+
+
+
+
+
+
+
+
+        
 
         function setScoreFromCell(button, studentId, criterionIndex, groupId, checklistId) {
             const score = parseInt(button.dataset.score, 10);
@@ -4308,6 +4323,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
