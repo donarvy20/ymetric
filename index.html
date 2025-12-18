@@ -2384,8 +2384,9 @@ function roundCustom(average) {
                 
                 const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
                 const criteriaCount = evaluatedScores.length;
-                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                const performance = getPerformanceLevel(average);
+const averageRaw = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+const averageRounded = roundCustom(averageRaw); // ← Aplicamos redondeo
+const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor redondeado
                 
                 const isEvaluated = totalScore > 0;
                 const checkIcon = isEvaluated ? '<i class="bi bi-check-circle-fill evaluated-check"></i>' : '';
@@ -2460,7 +2461,7 @@ function roundCustom(average) {
                             `;
                         }).join('')}
                         <td class="total-score fw-bold">${totalScore}</td>
-                     <td class="average-score fw-bold">${roundCustom(average)}</td>
+                     <td class="average-score fw-bold">${averageRounded}</td>
                         <td class="performance-level ${performance.class}">${performance.name}</td>
                     </tr>
                 `;
@@ -4307,6 +4308,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
