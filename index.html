@@ -243,17 +243,6 @@
     font-size: 16px;
     font-weight: bold;
     background-color: lightgreen;
-        }
-
-
-
-
-
-
-
-
-
-        #student-search {
     width: 100%;
     padding: 16px;
     font-size: 18px;
@@ -271,15 +260,6 @@
     border-color: #4caf50;
 }
 
-/* Botón como pseudo-elemento (solo visual) */
-#student-search:not(:placeholder-shown) {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'%3E%3C/line%3E%3Cline x1='6' y1='6' x2='18' y2='18'%3E%3C/line%3E%3C/svg%3E");
-    background-position: right 16px center;
-    background-repeat: no-repeat;
-    background-size: 20px;
-    padding-right: 45px;
-    cursor: pointer;
-}
 
         
     </style>
@@ -531,7 +511,7 @@
 <!-- CAJA DE BÚSQUEDA (NUEVO) -->
                     <div class="mb-4">
                         <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
-                       <button class="clear-btn hidden" onclick="document.getElementById('student-search').value=''; this.classList.add('hidden')">✕</button>
+                    
                     </div>
 
                     
@@ -4445,24 +4425,6 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
 
 
 
-const input = document.getElementById('student-search');
-const clearBtn = document.querySelector('.clear-btn');
-
-// Mostrar/ocultar botón según contenido
-input.addEventListener('input', function() {
-    clearBtn.classList.toggle('hidden', !this.value);
-});
-
-// Posicionar botón junto al input
-function positionClearBtn() {
-    const inputRect = input.getBoundingClientRect();
-    clearBtn.style.position = 'fixed';
-    clearBtn.style.left = (inputRect.right - 35) + 'px';
-    clearBtn.style.top = (inputRect.top + (input.offsetHeight/2) - 15) + 'px';
-}
-
-window.addEventListener('load', positionClearBtn);
-window.addEventListener('resize', positionClearBtn);
 
 
 
@@ -4476,6 +4438,7 @@ window.addEventListener('resize', positionClearBtn);
     </script>
 </body>
 </html>
+
 
 
 
