@@ -3708,14 +3708,16 @@ if (type === 'consolidated') {
                     
                     const criteriaCount = evaluatedScores.length; 
                     const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                    const performance = getPerformanceLevel(average);
+                        const averageRounded = roundCustom(averageRaw); // ✅ Redondeamos
+        const performance = getPerformanceLevel(averageRounded); // ✅ Usamos el redondeado
 
                     return {
                         id: student.id,
                         name: student.name,
                         evals: studentEvals,
                         total: totalScore,
-                        average: average,
+                        average: averageRaw, // ✅ Guardamos el valor original para mostrarlo en la tabla si es necesario, pero usamos el redondeado para el cálculo
+                        averageRounded: averageRounded, // ✅ Guardamos el valor redondeado
                         performance: performance.name
                     };
                 });
@@ -3961,7 +3963,10 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
         ? totalSumOfAverages / totalStudentsEvaluated
         : 0;
 
-    const performance = getPerformanceLevel(finalNormalizedAverage);
+      const finalAverageRounded = roundCustom(finalNormalizedAverage); // ✅ Redondeamos el promedio final
+    const performance = getPerformanceLevel(finalAverageRounded); // ✅ Usamos el promedio redonde
+
+                   
     const performanceName = performance.name;
 
     // Filtrar criterios válidos (sin separadores)
@@ -4384,6 +4389,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
