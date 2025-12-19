@@ -3820,8 +3820,11 @@ if (type === 'consolidated') {
                         });
                         
                         let finalY = doc.autoTable.previous.finalY + 10;
+
+
+                        /*
                         
-                        // --- RESUMEN Y DESEMPEÑO (Bloques claros) ---
+                        // --- RESUMEN Y DESEMPEÑO (Bloques claros) --
                         const summaryX = 10;
                         const scaleX = pageWidth / 2; 
 
@@ -3846,6 +3849,58 @@ if (type === 'consolidated') {
                         doc.setTextColor(ACCENT_RED[0], ACCENT_RED[1], ACCENT_RED[2]); 
                         doc.text(`NIVEL DE DESEMPEÑO: ${studentData.performance}`, summaryX + 5, finalY);
                         doc.setFont('helvetica', 'normal');
+
+*/
+
+
+
+
+
+// --- RESUMEN Y DESEMPEÑO (Bloques claros) ---
+const summaryX = 10;
+const scaleX = pageWidth / 2; 
+// ✅ Calcular el promedio redondeado y el nivel basado en él
+const averageRounded = roundCustom(studentData.average);
+const performanceForPDF = getPerformanceLevel(averageRounded);
+
+// 1. Box for Results
+doc.setFillColor(240, 240, 240); // Light gray background
+doc.rect(summaryX, finalY - 5, pageWidth - 20, 35, 'F'); 
+// Column 1: Scores
+doc.setFontSize(10);
+doc.setTextColor(0, 0, 0); 
+doc.setFont('helvetica', 'bold');
+doc.text(`PUNTAJE TOTAL (Máx ${totalMaxScore}):`, summaryX + 5, finalY);
+doc.text(`${studentData.total}`, summaryX + 70, finalY);
+finalY += 7;
+doc.text(`PROMEDIO (Máx ${maxScorePerCriterion.toFixed(1)}):`, summaryX + 5, finalY);
+doc.text(`${averageRounded}`, summaryX + 70, finalY); // ✅ Mostrar el redondeado
+finalY += 10;
+// Performance highlight (inside the box)
+doc.setFontSize(14);
+doc.setTextColor(ACCENT_RED[0], ACCENT_RED[1], ACCENT_RED[2]); 
+// ✅ Usar el nivel basado en el promedio redondeado
+doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        
                         
                         // 2. Box for Scale Reference
                         let scaleY = doc.autoTable.previous.finalY + 10; 
@@ -4329,6 +4384,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
