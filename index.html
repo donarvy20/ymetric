@@ -256,6 +256,23 @@
     opacity: 0;      /* Oculto por defecto */
     transition: opacity 0.2s ease;
 }
+
+
+/* Mostrar el icono cuando el textbox tiene contenido */
+#miTextbox:not(:placeholder-shown) + #limpiarIcono {
+    opacity: 1;
+}
+
+#miTextbox:focus + #limpiarIcono {
+    opacity: 1;
+}
+
+/* Efecto al pasar el ratón sobre el icono */
+#limpiarIcono:hover {
+    color: #d32f2f;
+}
+
+        
     </style>
 </head>
 <body>
@@ -4415,6 +4432,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
