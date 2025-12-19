@@ -4437,10 +4437,46 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
             document.getElementById('generate-summary-report').addEventListener('click', () => handleReportGeneration('summary'));
             document.getElementById('generate-consolidated-report').addEventListener('click', () => handleReportGeneration('consolidated'));
         });
+
+
+
+
+
+
+
+
+const input = document.getElementById('student-search');
+const clearBtn = document.querySelector('.clear-btn');
+
+// Mostrar/ocultar botón según contenido
+input.addEventListener('input', function() {
+    clearBtn.classList.toggle('hidden', !this.value);
+});
+
+// Posicionar botón junto al input
+function positionClearBtn() {
+    const inputRect = input.getBoundingClientRect();
+    clearBtn.style.position = 'fixed';
+    clearBtn.style.left = (inputRect.right - 35) + 'px';
+    clearBtn.style.top = (inputRect.top + (input.offsetHeight/2) - 15) + 'px';
+}
+
+window.addEventListener('load', positionClearBtn);
+window.addEventListener('resize', positionClearBtn);
+
+
+
+
+
+
+
+
+
         
     </script>
 </body>
 </html>
+
 
 
 
