@@ -3695,32 +3695,39 @@ if (type === 'consolidated') {
             
             
             if (type === 'detailed' || type === 'summary') {
-                // --- CÁLCULOS ESTÁNDAR (SUMMARY / DETAILED) ---
-                const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
-                const validCriteriaCount = checklist.criteria.filter(c => c !== '---').length;
-                const totalMaxScore = maxScorePerCriterion * validCriteriaCount;
-
-                const allStudentsData = group.students.map(student => {
-                    const studentEvals = evaluations[checklistId]?.[student.id] || new Array(checklist.criteria.length).fill(0);
-                    
-                    const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
-                    const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
-                    
-                    const criteriaCount = evaluatedScores.length; 
-                    const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                        const averageRounded = roundCustom(averageRaw); // ✅ Redondeamos
+    // --- CÁLCULOS ESTÁNDAR (SUMMARY / DETAILED) ---
+    const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+    const validCriteriaCount = checklist.criteria.filter(c => c !== '---').length;
+    const totalMaxScore = maxScorePerCriterion * validCriteriaCount;
+    const allStudentsData = group.students.map(student => {
+        const studentEvals = evaluations[checklistId]?.[student.id] || new Array(checklist.criteria.length).fill(0);
+        const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+        const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+        const criteriaCount = evaluatedScores.length; 
+        const averageRaw = criteriaCount > 0 ? totalScore / criteriaCount : 0; // ✅ Definimos averageRaw
+        const averageRounded = roundCustom(averageRaw); // ✅ Redondeamos
         const performance = getPerformanceLevel(averageRounded); // ✅ Usamos el redondeado
+        return {
+            id: student.id,
+            name: student.name,
+            evals: studentEvals,
+            total: totalScore,
+            average: averageRounded, // ✅ Guardamos el redondeado
+            performance: performance.name
+        };
+    });
 
-                    return {
-                        id: student.id,
-                        name: student.name,
-                        evals: studentEvals,
-                        total: totalScore,
-                        average: averageRaw, // ✅ Guardamos el valor original para mostrarlo en la tabla si es necesario, pero usamos el redondeado para el cálculo
-                        averageRounded: averageRounded, // ✅ Guardamos el valor redondeado
-                        performance: performance.name
-                    };
-                });
+
+
+
+
+
+
+
+
+
+
+                
                 
                 let fileName = `${type}_reporte_${group.name.replace(/\s/g, '_')}_${checklist.name.replace(/\s/g, '_')}.pdf`;
                 
@@ -4389,6 +4396,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
