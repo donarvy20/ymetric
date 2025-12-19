@@ -245,31 +245,40 @@
     background-color: lightgreen;
         }
 
-   #limpiarIcono {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+
+
+
+
+
+
+
+
+        #student-search {
+    width: 100%;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #e8f5e9;
+    border: 2px solid #81c784;
+    border-radius: 10px;
+    color: #1b5e20;
+    outline: none;
+    box-sizing: border-box;
+}
+
+#student-search:focus {
+    background-color: #d4edda;
+    border-color: #4caf50;
+}
+
+/* Botón como pseudo-elemento (solo visual) */
+#student-search:not(:placeholder-shown) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'%3E%3C/line%3E%3Cline x1='6' y1='6' x2='18' y2='18'%3E%3C/line%3E%3C/svg%3E");
+    background-position: right 16px center;
+    background-repeat: no-repeat;
+    background-size: 20px;
+    padding-right: 45px;
     cursor: pointer;
-    color: #555;
-    font-size: 16px; /* Tamaño del icono */
-    opacity: 0;      /* Oculto por defecto */
-    transition: opacity 0.2s ease;
-}
-
-
-/* Mostrar el icono cuando el textbox tiene contenido */
-#miTextbox:not(:placeholder-shown) + #limpiarIcono {
-    opacity: 1;
-}
-
-#miTextbox:focus + #limpiarIcono {
-    opacity: 1;
-}
-
-/* Efecto al pasar el ratón sobre el icono */
-#limpiarIcono:hover {
-    color: #d32f2f;
 }
 
         
@@ -4432,6 +4441,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
