@@ -580,7 +580,7 @@
 <!-- CAJA DE BÚSQUEDA (NUEVO) -->
                     <div class="mb-4">
                         <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
-                   <span id="clear-search" class="clear-search-icon">X</span>
+                   <button type="button" id="clear-button" style="display:none;">X</button>
                     </div>
 
                     
@@ -4500,45 +4500,32 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
         
 
 
-// JavaScript - Versión mejorada
-document.addEventListener('DOMContentLoaded', function() {
-  const searchInput = document.getElementById('student-search');
-  const clearBtn = document.getElementById('clear-search');
-  
-  if (searchInput && clearBtn) {
-    // Mostrar/ocultar la "x" según si hay texto
-    searchInput.addEventListener('input', function() {
-      clearBtn.style.display = this.value ? 'block' : 'none';
-    });
-    
-    // También verificar al cargar la página
-    clearBtn.style.display = searchInput.value ? 'block' : 'none';
-    
-    // Limpiar el input al hacer clic en la "x"
-    clearBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      searchInput.value = '';
-      searchInput.focus();
-      clearBtn.style.display = 'none';
-      
-      // Disparar evento input para notificar a otros listeners
-      searchInput.dispatchEvent(new Event('input'));
-    });
-    
-    // Opcional: Limpiar con la tecla Escape
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        this.value = '';
-        clearBtn.style.display = 'none';
-        this.dispatchEvent(new Event('input'));
-      }
-    });
-  }
+// JavaScript
+const input = document.getElementById('student-search');
+const button = document.getElementById('clear-button');
+
+// Validar cuando se escribe en el input
+input.addEventListener('input', function() {
+    if(this.value.length > 0) {
+        button.style.display = 'inline';
+    } else {
+        button.style.display = 'none';
+    }
+});
+
+// Limpiar el input cuando se hace clic en el botón
+button.addEventListener('click', function() {
+    input.value = '';
+    input.focus();
+    button.style.display = 'none';
 });
 
 
 
 
+
+
+        
 
 
 
@@ -4549,6 +4536,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 </body>
 </html>
+
 
 
 
