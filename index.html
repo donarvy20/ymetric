@@ -4459,6 +4459,56 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
                     const moduleId = moduleName + '-module';
                     showModule(moduleId);
                     closeNavbar();
+
+
+
+
+
+
+
+
+
+
+
+// **********************************************
+// PREVENCIÓN DE RECARGA/CIERRE ACCIDENTAL
+// **********************************************
+let preventUnload = true; // Activa la protección por defecto
+
+// Escuchar el evento beforeunload
+window.addEventListener('beforeunload', function (e) {
+    if (preventUnload) {
+        // Cancelar el evento (obligatorio para algunos navegadores)
+        e.preventDefault();
+        // Mostrar el diálogo de confirmación nativo
+        e.returnValue = ''; // El mensaje real lo pone el navegador
+        return '';
+    }
+});
+
+// Opcional: Permitir recargar en ciertos módulos si lo deseas
+// Por ejemplo, en el módulo de inicio (home), no es necesario advertir.
+/*
+document.addEventListener('click', function(e) {
+    // Si cambias de módulo, puedes ajustar preventUnload
+    if (e.target.closest('[data-module="home"]')) {
+        preventUnload = false;
+    } else {
+        preventUnload = true;
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+                    
                 });
             });
 
@@ -4544,6 +4594,7 @@ button.addEventListener('click', function() {
     </script>
 </body>
 </html>
+
 
 
 
