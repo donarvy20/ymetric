@@ -261,6 +261,75 @@
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* CSS */
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.clear-search-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  display: none;
+  font-size: 18px;
+  color: #999;
+  z-index: 10; /* Asegura que esté por encima */
+  background-color: white; /* Fondo para que cubra el borde del input */
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  line-height: 18px;
+  border-radius: 50%;
+}
+
+.clear-search-icon:hover {
+  color: #333;
+  background-color: #f0f0f0;
+}
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+        
         
     </style>
 </head>
@@ -4422,23 +4491,50 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
 
 
 
-// JavaScript
-const searchInput = document.getElementById('student-search');
-const clearBtn = document.getElementById('clear-search');
 
-// Mostrar/ocultar la "x" según si hay texto
-searchInput.addEventListener('input', function() {
-  clearBtn.style.display = this.value ? 'block' : 'none';
+
+
+
+
+
+        
+
+
+// JavaScript - Versión mejorada
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('student-search');
+  const clearBtn = document.getElementById('clear-search');
+  
+  if (searchInput && clearBtn) {
+    // Mostrar/ocultar la "x" según si hay texto
+    searchInput.addEventListener('input', function() {
+      clearBtn.style.display = this.value ? 'block' : 'none';
+    });
+    
+    // También verificar al cargar la página
+    clearBtn.style.display = searchInput.value ? 'block' : 'none';
+    
+    // Limpiar el input al hacer clic en la "x"
+    clearBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      searchInput.value = '';
+      searchInput.focus();
+      clearBtn.style.display = 'none';
+      
+      // Disparar evento input para notificar a otros listeners
+      searchInput.dispatchEvent(new Event('input'));
+    });
+    
+    // Opcional: Limpiar con la tecla Escape
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        this.value = '';
+        clearBtn.style.display = 'none';
+        this.dispatchEvent(new Event('input'));
+      }
+    });
+  }
 });
-
-// Limpiar el input al hacer clic en la "x"
-clearBtn.addEventListener('click', function() {
-  searchInput.value = '';
-  searchInput.focus();
-  clearBtn.style.display = 'none';
-  // Puedes agregar aquí lógica adicional si necesitas actualizar resultados de búsqueda
-});
-
 
 
 
@@ -4453,6 +4549,7 @@ clearBtn.addEventListener('click', function() {
     </script>
 </body>
 </html>
+
 
 
 
