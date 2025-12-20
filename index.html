@@ -579,8 +579,18 @@
                     <!-- BUSCARRRRRRRRRRRRRRRRRR -->
 <!-- CAJA DE BÚSQUEDA (NUEVO) -->
                     <div class="mb-4">
-                        <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
-                   <button type="button" id="clear-button" style="display:none;">X</button>
+                     <!--  <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
+                   <button type="button" id="clear-button" style="display:none;">X</button> -->
+
+
+<div style="position: relative; display: inline-block; width: 100%;">
+    <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido..." style="padding-right: 35px;">
+    <button type="button" id="clear-button" style="display:none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; color: #999; cursor: pointer;">×</button>
+</div>
+
+
+
+                        
                     </div>
 
                     
@@ -4500,20 +4510,18 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
         
 
 
-// JavaScript
+// Mismo JavaScript de arriba
 const input = document.getElementById('student-search');
 const button = document.getElementById('clear-button');
 
-// Validar cuando se escribe en el input
 input.addEventListener('input', function() {
     if(this.value.length > 0) {
-        button.style.display = 'inline';
+        button.style.display = 'block';
     } else {
         button.style.display = 'none';
     }
 });
 
-// Limpiar el input cuando se hace clic en el botón
 button.addEventListener('click', function() {
     input.value = '';
     input.focus();
@@ -4536,6 +4544,7 @@ button.addEventListener('click', function() {
     </script>
 </body>
 </html>
+
 
 
 
