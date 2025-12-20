@@ -511,7 +511,7 @@
 <!-- CAJA DE BÚSQUEDA (NUEVO) -->
                     <div class="mb-4">
                         <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
-                    
+                    <span id="clear-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; display: none; font-size: 18px; color: #999;">×</span>
                     </div>
 
                     
@@ -4422,7 +4422,22 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
 
 
 
+// JavaScript
+const searchInput = document.getElementById('student-search');
+const clearBtn = document.getElementById('clear-search');
 
+// Mostrar/ocultar la "x" según si hay texto
+searchInput.addEventListener('input', function() {
+  clearBtn.style.display = this.value ? 'block' : 'none';
+});
+
+// Limpiar el input al hacer clic en la "x"
+clearBtn.addEventListener('click', function() {
+  searchInput.value = '';
+  searchInput.focus();
+  clearBtn.style.display = 'none';
+  // Puedes agregar aquí lógica adicional si necesitas actualizar resultados de búsqueda
+});
 
 
 
@@ -4438,6 +4453,7 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
     </script>
 </body>
 </html>
+
 
 
 
