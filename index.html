@@ -2236,6 +2236,9 @@ async function duplicateChecklist(checklistId) {
 
         let quickEvalTargetStudentId = null;
 
+        // Variable para controlar si la tabla de evaluación individual está habilitada
+
+
         function getNextGroupColor() {
             let usedColors = new Set();
             
@@ -2611,7 +2614,13 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
                     </tbody>
                 </table>
             `;
+
+
             container.innerHTML = tableHtml;
+
+            updateEvaluationRowsState(); // ✅ Aplicar estado inicial tras renderizar
+            checkGroupEvaluationReadiness(); // para botón grupal
+
             evaluationOptions.classList.remove('d-none');
             checkGroupEvaluationReadiness();
             
@@ -2635,7 +2644,8 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
 
 
         
-       function updateStudentResults(studentId, groupId, checklistId) {
+    function updateStudentResults(studentId, groupId, checklistId) {
+
     const group = appData.studentGroups.find(g => g.id === groupId);
     const checklist = appData.checklists.find(c => c.id === checklistId);
     const studentEvals = appData.evaluations[groupId]?.[checklistId]?.[studentId] || [];
@@ -2647,6 +2657,7 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
     const averageRounded = roundCustom(averageRaw); // ✅ Redondeado
     const performance = getPerformanceLevel(averageRounded); // ✅ Basado en el redondeado
     const row = document.querySelector(`#evaluation-table tr[data-student-id="${studentId}"]`);
+
     if (row) {
         row.querySelector('.total-score').textContent = totalScore;
         row.querySelector('.average-score').textContent = averageRounded; // ✅ Mostrar redondeado
@@ -2654,6 +2665,7 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
         perfCell.textContent = performance.name;
         perfCell.className = 'performance-level ' + performance.class;
         updateEvaluationCheckIcon(studentId, row, checklist);
+
         // Actualizar apariencia de botones dentro de la tabla
         const scoreCells = row.querySelectorAll('td[data-criterion-index]');
         scoreCells.forEach(cell => {
@@ -2684,6 +2696,7 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
             }
         }
     }
+
 }
 
 
@@ -2695,73 +2708,181 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
 
         
 
-        function setScoreFromCell(button, studentId, criterionIndex, groupId, checklistId) {
-            const score = parseInt(button.dataset.score, 10);
-            
-            // 1. Update the model
-            if (!appData.evaluations[groupId][checklistId][studentId]) {
-                appData.evaluations[groupId][checklistId][studentId] = new Array(appData.checklists.find(c => c.id === checklistId).criteria.length).fill(0);
-            }
-            appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
+function setScoreFromCell(button, studentId, criterionIndex, groupId, checklistId) {
+    // --- NUEVO: Verificar si la tabla está habilitada ---
+    if (!isSingleStudentSelected) {
+        // Si la tabla está deshabilitada, no hacemos nada.
+        return;
+    }
+    // --- FIN NUEVO ---
 
-            // 2. Borrar el color de grupo si el score se pone a 0 o si se hace una evaluación individual
-            if (score === 0) {
-                 const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
-                 if (studentData) delete studentData.groupEvalColors[checklistId];
-            } else {
-                 // Si se evaluó individualmente (score > 0), nos aseguramos de borrar el color de grupo si existe,
-                 // para que no parezca que es parte de una evaluación grupal reciente.
-                 const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
-                 if (studentData && studentData.groupEvalColors[checklistId]) {
-                     delete studentData.groupEvalColors[checklistId];
-                 }
-            }
+    const score = parseInt(button.dataset.score, 10);
 
-            // 3. Update student results and save data (esto actualiza el color del checkbox/celda)
-            updateStudentResults(studentId, groupId, checklistId);
-            saveData();
-        }
+    // 1. Update the model
+    if (!appData.evaluations[groupId][checklistId][studentId]) {
+        appData.evaluations[groupId][checklistId][studentId] = new Array(appData.checklists.find(c => c.id === checklistId).criteria.length).fill(0);
+    }
+    appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
+
+    // 2. Borrar el color de grupo si el score se pone a 0 o si se hace una evaluación individual
+    if (score === 0) {
+         const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+         if (studentData) delete studentData.groupEvalColors[checklistId];
+    } else {
+         // Si se evaluó individualmente (score > 0), nos aseguramos de borrar el color de grupo si existe,
+         // para que no parezca que es parte de una evaluación grupal reciente.
+         const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+         if (studentData && studentData.groupEvalColors[checklistId]) {
+             delete studentData.groupEvalColors[checklistId];
+         }
+    }
+
+    // 3. Update student results and save data (esto actualiza el color del checkbox/celda)
+    updateStudentResults(studentId, groupId, checklistId);
+    saveData();
+}
 
         
         // **********************************************
         // EVALUACIÓN GRUPAL (LÓGICA POR CRITERIO)
         // **********************************************
         
-        function toggleAllStudents(checked) {
-            document.querySelectorAll('.student-checkbox').forEach(cb => {
-                cb.checked = checked;
-            });
-            checkGroupEvaluationReadiness();
-        }
+  function toggleAllStudents(checked) {
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateEvaluationRowsState(); // ✅
+    checkGroupEvaluationReadiness();
+    // --- NUEVO: Forzar la actualización del estado de la tabla ---
+    // Al marcar/desmarcar todos, siempre deshabilitamos la tabla individual.
+    isSingleStudentSelected = false;
+   
+    // --- FIN NUEVO ---
+
+    checkGroupEvaluationReadiness();
+}
         
-        function checkGroupEvaluationReadiness() {
-            const checkedStudents = document.querySelectorAll('.student-checkbox:checked').length;
-            const groupEvaluateBtn = document.getElementById('group-evaluate-btn');
-            const checkAllStudentsHeader = document.getElementById('check-all-students-header');
-            const totalStudents = document.querySelectorAll('.student-row').length;
-            
-            // Habilitar/Deshabilitar el botón de Evaluación Grupal
-            groupEvaluateBtn.disabled = checkedStudents === 0;
 
-            // Cambiar color del botón si hay estudiantes seleccionados
-            if (checkedStudents > 0) {
-                groupEvaluateBtn.classList.remove('btn-secondary');
-                groupEvaluateBtn.classList.add('btn-success');
-            } else {
-                groupEvaluateBtn.classList.remove('btn-success');
-                groupEvaluateBtn.classList.add('btn-secondary');
-            }
-            
-            const checkAllStudentsMain = document.getElementById('check-all-students');
 
-            if (totalStudents > 0) {
-                checkAllStudentsHeader.checked = checkedStudents === totalStudents;
-                checkAllStudentsMain.checked = checkedStudents === totalStudents;
-            } else {
-                checkAllStudentsHeader.checked = false;
-                checkAllStudentsMain.checked = false;
-            }
+
+
+
+
+function checkGroupEvaluationReadiness() {
+    const checkedStudents = document.querySelectorAll('.student-checkbox:checked').length;
+    const groupEvaluateBtn = document.getElementById('group-evaluate-btn');
+    const checkAllStudentsHeader = document.getElementById('check-all-students-header');
+    const totalStudents = document.querySelectorAll('.student-row').length;
+
+    // Solo controlar el botón de evaluación grupal
+    groupEvaluateBtn.disabled = checkedStudents === 0;
+    if (checkedStudents > 0) {
+        groupEvaluateBtn.classList.remove('btn-secondary');
+        groupEvaluateBtn.classList.add('btn-success');
+    } else {
+        groupEvaluateBtn.classList.remove('btn-success');
+        groupEvaluateBtn.classList.add('btn-secondary');
+    }
+
+    if (totalStudents > 0) {
+        checkAllStudentsHeader.checked = checkedStudents === totalStudents;
+        document.getElementById('check-all-students').checked = checkedStudents === totalStudents;
+    } else {
+        checkAllStudentsHeader.checked = false;
+        document.getElementById('check-all-students').checked = false;
+    }
+
+    // ✅ NUEVO: Actualizar estado de FILAS (no de toda la tabla)
+    updateEvaluationRowsState();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Actualiza el estado (enabled/disabled) de todos los botones de evaluación en la tabla.
+ * Se basa en la variable global `isSingleStudentSelected`.
+ */
+function updateEvaluationButtonsState() {
+    // Seleccionar todos los botones de evaluación en la tabla
+    const allEvaluationButtons = document.querySelectorAll('#evaluation-table .cell-score-btn');
+
+    allEvaluationButtons.forEach(button => {
+        // Si la tabla NO está habilitada, deshabilitamos el botón
+        if (!isSingleStudentSelected) {
+            button.disabled = true;
+            // Opcional: Añadir estilo visual para indicar que está deshabilitado
+            button.style.opacity = '0.6';
+            button.style.cursor = 'not-allowed';
+        } else {
+            // Si la tabla está habilitada, activamos el botón
+            button.disabled = false;
+            button.style.opacity = '1';
+            button.style.cursor = 'pointer';
         }
+    });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Habilita o deshabilita los botones de evaluación en cada fila
+ * según si el checkbox del estudiante está marcado.
+ */
+function updateEvaluationRowsState() {
+    document.querySelectorAll('.student-row').forEach(row => {
+        const checkbox = row.querySelector('.student-checkbox');
+        const buttons = row.querySelectorAll('.cell-score-btn');
+
+        const isEnabled = checkbox && checkbox.checked;
+
+        buttons.forEach(btn => {
+            btn.disabled = !isEnabled;
+            if (isEnabled) {
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            } else {
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            }
+        });
+    });
+}
+
+
+
+
+
+
+
         
         function selectModalScore(button) {
             const container = button.closest('.criterion-group');
@@ -2779,42 +2900,59 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
             container.dataset.score = score;
         }
 
+
+
+
+
+
+
+
         
-        function prepareQuickEvaluation(event, studentId = null) {
-            if (event) event.stopPropagation();
-            
-            const modalElement = document.getElementById('groupEvaluationModal');
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-            const groupId = document.getElementById('select-group').value;
-            const checklistId = document.getElementById('select-checklist').value;
+function prepareQuickEvaluation(event, studentId = null) {
+    if (event) event.stopPropagation();
+    const modalElement = document.getElementById('groupEvaluationModal');
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+    const groupId = document.getElementById('select-group').value;
+    const checklistId = document.getElementById('select-checklist').value;
+    if (!groupId || !checklistId) {
+        showToast('Selecciona un Grupo y una Lista de Cotejo primero.', 'warning');
+        return;
+    }
 
-            if (!groupId || !checklistId) {
-                showToast('Selecciona un Grupo y una Lista de Cotejo primero.', 'warning');
-                return;
-            }
+    if (studentId) {
+        // Modo Evaluación Rápida Individual
+        quickEvalTargetStudentId = studentId;
+        const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === quickEvalTargetStudentId);
+        document.getElementById('groupEvaluationModalLabel').textContent = `Evaluación Rápida: ${student ? student.name : 'Estudiante'}`;
 
-            if (studentId) {
-                // Modo Evaluación Rápida Individual
-                quickEvalTargetStudentId = studentId;
-                
-                const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === quickEvalTargetStudentId);
-                document.getElementById('groupEvaluationModalLabel').textContent = `Evaluación Rápida: ${student ? student.name : 'Estudiante'}`;
-                
-                modalInstance.show();
-                
-            } else {
-                // Modo Evaluación Grupal (normal)
-                quickEvalTargetStudentId = null; 
-                document.getElementById('groupEvaluationModalLabel').textContent = 'Evaluación Rápida por Criterio';
-                
-                const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
-                if (selectedStudents.length === 0) {
-                    showToast('Selecciona al menos un estudiante.', 'warning');
-                    return;
-                }
-                modalInstance.show();
-            }
+        // --- NUEVO: Activar la tabla para la evaluación individual ---
+        // Marcamos el checkbox del estudiante y actualizamos el estado.
+        const checkbox = document.querySelector(`#student-check-${studentId}`);
+        if (checkbox) {
+            checkbox.checked = true;
+            isSingleStudentSelected = true;
+            updateEvaluationRowsState(); // ✅ Habilitar su fila
         }
+        // --- FIN NUEVO ---
+
+        modalInstance.show();
+    } else {
+        // Modo Evaluación Grupal (normal)
+        quickEvalTargetStudentId = null;
+        document.getElementById('groupEvaluationModalLabel').textContent = 'Evaluación Rápida por Criterio';
+        const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
+        if (selectedStudents.length === 0) {
+            showToast('Selecciona al menos un estudiante.', 'warning');
+            return;
+        }
+        modalInstance.show();
+    }
+}
+
+
+
+
+
         
         document.getElementById('groupEvaluationModal').addEventListener('show.bs.modal', (e) => {
             const checklistId = document.getElementById('select-checklist').value;
@@ -2943,6 +3081,11 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
             });
 
             saveData();
+
+            // --- NUEVO: Después de aplicar una evaluación grupal, deshabilitar la tabla individual ---
+isSingleStudentSelected = false;
+
+// --- FIN NUEVO ---
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('groupEvaluationModal'));
             modal.hide();
@@ -4615,82 +4758,8 @@ button.addEventListener('click', function() {
     button.style.display = 'none';
 });
 
-
-
-
-
-
-        
-
-
-
-
-
-
-        
-    </script>
+    
+      
+</script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
