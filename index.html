@@ -887,6 +887,10 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
+
+
+
+                    
                     <form id="checklist-form">
                         <input type="hidden" id="checklist-id">
                         
@@ -944,13 +948,44 @@
                     <h5 class="modal-title" id="groupEvaluationModalLabel"><i class="bi bi-grid-3x3-gap-fill me-2"></i> Evaluación Rápida por Criterio</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
+
+
+
+
+
+
                 <div class="modal-body">
+
+
+ <div class="alert alert-info rounded-lg mb-3" id="selected-students-preview">
+    <!-- Nombres de estudiantes aparecerán aquí -->
+  </div>
+
+
+
                     <p class="text-muted">Aplica un nivel y puntaje a **todos los estudiantes seleccionados** para un criterio específico.</p>
                     
+
+
+
+
+
                     <!-- Contenedor de la lista de criterios para evaluación rápida -->
                     <div id="group-evaluation-matrix-container" class="table-responsive-sm bg-light p-2">
                         <!-- Aquí se renderizan los criterios con los botones de niveles -->
                     </div>
+
+
+ <!-- Campo de comentario adicional -->
+  <div class="mb-3">
+    <label for="evaluation-comment" class="form-label fw-bold">Comentario Adicional (opcional)</label>
+    <textarea class="form-control" id="evaluation-comment" rows="2" placeholder="Ej: Buena participación, pero falta profundidad en el análisis..."></textarea>
+  </small>
+  </div>
+
+
+
+
 
                     <div class="modal-footer mt-4">
                         <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cerrar</button>
@@ -2991,49 +3026,86 @@ function updateEvaluationRowsState() {
 
 
 
+function getTeamColorForSelection(groupId, checklistId, studentId, studentIds) {
+  if (studentId) {
+    return `INDIVIDUAL_${studentId}`;
+  }
+  // Para grupal, generamos un color si no existe, o lo recuperamos
+  const group = appData.studentGroups.find(g => g.id === groupId);
+  if (!group) return '#D3D3D3';
+
+  // Verificar si ya tienen un color común
+  let commonColor = null;
+  if (studentIds && studentIds.length > 0) {
+    const firstStudent = group.students.find(s => s.id === studentIds[0]);
+    commonColor = firstStudent?.groupEvalColors?.[checklistId];
+    if (commonColor && !commonColor.startsWith('INDIVIDUAL_')) {
+      // Verificar que todos tengan el mismo color
+      const allSame = studentIds.every(id => {
+        const s = group.students.find(st => st.id === id);
+        return s?.groupEvalColors?.[checklistId] === commonColor;
+      });
+      if (allSame) return commonColor;
+    }
+  }
+  // Si no hay color común, usar uno nuevo (pero no lo asignamos aún)
+  return getNextGroupColor(groupId, checklistId).hex;
+}
+
+
+
+
 
 
 
         
 function prepareQuickEvaluation(event, studentId = null) {
-    if (event) event.stopPropagation();
-    const modalElement = document.getElementById('groupEvaluationModal');
-    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
-    const groupId = document.getElementById('select-group').value;
-    const checklistId = document.getElementById('select-checklist').value;
-    if (!groupId || !checklistId) {
-        showToast('Selecciona un Grupo y una Lista de Cotejo primero.', 'warning');
-        return;
+  if (event) event.stopPropagation();
+  const modalElement = document.getElementById('groupEvaluationModal');
+  const modalInstance = bootstrap.Modal.getOrCreateInstance(modalElement);
+  const groupId = document.getElementById('select-group').value;
+  const checklistId = document.getElementById('select-checklist').value;
+  const previewContainer = document.getElementById('selected-students-preview');
+  const commentInput = document.getElementById('evaluation-comment');
+
+  if (!groupId || !checklistId) {
+    showToast('Selecciona un Grupo y una Lista de Cotejo primero.', 'warning');
+    return;
+  }
+
+  let targetStudentIds;
+  let studentNames = [];
+
+  if (studentId) {
+    // Modo individual
+    quickEvalTargetStudentId = studentId;
+    const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+    studentNames = [student ? student.name : 'Estudiante'];
+    previewContainer.innerHTML = `<strong>Evaluando a:</strong> ${studentNames[0]}`;
+    previewContainer.className = 'alert alert-success rounded-lg mb-3';
+  } else {
+    // Modo grupal
+    quickEvalTargetStudentId = null;
+    targetStudentIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
+    if (targetStudentIds.length === 0) {
+      showToast('Selecciona al menos un estudiante.', 'warning');
+      return;
     }
+    const group = appData.studentGroups.find(g => g.id === groupId);
+    studentNames = targetStudentIds.map(id => {
+      const s = group.students.find(st => st.id === id);
+      return s ? s.name : 'Desconocido';
+    });
+    previewContainer.innerHTML = `<strong>Estudiantes seleccionados (${studentNames.length}):</strong><br>${studentNames.join(', ')}`;
+    previewContainer.className = 'alert alert-primary rounded-lg mb-3';
+  }
 
-    if (studentId) {
-        // Modo Evaluación Rápida Individual
-        quickEvalTargetStudentId = studentId;
-        const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === quickEvalTargetStudentId);
-        document.getElementById('groupEvaluationModalLabel').textContent = `Evaluación Rápida: ${student ? student.name : 'Estudiante'}`;
+  // Cargar comentario guardado (si existe)
+  const teamColor = getTeamColorForSelection(groupId, checklistId, studentId, targetStudentIds);
+  const commentKey = `${groupId}_${checklistId}_${teamColor}`;
+  commentInput.value = appData.evaluationComments?.[commentKey] || '';
 
-        // --- NUEVO: Activar la tabla para la evaluación individual ---
-        // Marcamos el checkbox del estudiante y actualizamos el estado.
-        const checkbox = document.querySelector(`#student-check-${studentId}`);
-        if (checkbox) {
-            checkbox.checked = true;
-            isSingleStudentSelected = true;
-            updateEvaluationRowsState(); // ✅ Habilitar su fila
-        }
-        // --- FIN NUEVO ---
-
-        modalInstance.show();
-    } else {
-        // Modo Evaluación Grupal (normal)
-        quickEvalTargetStudentId = null;
-        document.getElementById('groupEvaluationModalLabel').textContent = 'Evaluación Rápida por Criterio';
-        const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => cb.dataset.studentId);
-        if (selectedStudents.length === 0) {
-            showToast('Selecciona al menos un estudiante.', 'warning');
-            return;
-        }
-        modalInstance.show();
-    }
+  modalInstance.show();
 }
 
 
@@ -3166,7 +3238,19 @@ function prepareQuickEvaluation(event, studentId = null) {
                     updateStudentResults(studentId, groupId, checklistId);
                 });
             });
-
+// Guardar comentario
+const commentInput = document.getElementById('evaluation-comment');
+const comment = commentInput.value.trim();
+if (!appData.evaluationComments) appData.evaluationComments = {};
+const finalTeamColor = isIndividualEval 
+  ? `INDIVIDUAL_${quickEvalTargetStudentId}` 
+  : assignedColor;
+const commentKey = `${groupId}_${checklistId}_${finalTeamColor}`;
+if (comment) {
+  appData.evaluationComments[commentKey] = comment;
+} else {
+  delete appData.evaluationComments[commentKey]; // Limpiar si está vacío
+}
             saveData();
 
             // --- NUEVO: Después de aplicar una evaluación grupal, deshabilitar la tabla individual ---
@@ -3457,6 +3541,36 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
   doc.setFont('helvetica', 'bold');
   doc.text(`PROMEDIO FINAL ${teamColor.startsWith('INDIVIDUAL_') ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, finalY + 5);
   doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, finalY + 5, { align: 'right' });
+
+
+
+
+// --- COMENTARIO ADICIONAL ---
+const commentKey = `${groupId}_${checklistId}_${teamColor}`;
+const comment = appData.evaluationComments?.[commentKey];
+if (comment) {
+  y += 5;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Comentario:`, 10, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+  doc.text(commentLines, 10, y);
+  y += commentLines.length * 4 + 5;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
   // --- GENERAR Y COMPARTIR PDF ---
   const blob = doc.output('blob');
@@ -4773,6 +4887,8 @@ showToast(`Reporte ${type} generado como PDF.`, 'success');
             loadData();
             renderBasicData();
             checkAndRunScheduledBackup(); 
+            // Dentro de loadData(), después de cargar appData
+if (!appData.evaluationComments) appData.evaluationComments = {};
 
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
