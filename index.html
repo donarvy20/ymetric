@@ -3412,13 +3412,7 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
     return;
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const center = pageWidth / 2;
-  let y = 15;
-
-  // ✅ LÓGICA CORREGIDA: Detectar si es individual o grupal y obtener estudiantes correctamente
+  // ✅ CORRECCIÓN: Detectar estudiantes correctamente (incluyendo individuales)
   let teamStudents = [];
   if (teamColor.startsWith('INDIVIDUAL_')) {
     const targetStudentId = teamColor.replace('INDIVIDUAL_', '');
@@ -3434,6 +3428,12 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
     showToast('No se encontraron estudiantes en este equipo para el reporte.', 'danger');
     return;
   }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const center = pageWidth / 2;
+  let y = 15;
 
   const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
   const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
@@ -3462,7 +3462,8 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
   y += 15;
   doc.setFontSize(14);
   doc.setTextColor(108, 117, 125);
-  doc.text(`REPORTE ${teamColor.startsWith('INDIVIDUAL_') ? 'INDIVIDUAL' : 'DE EQUIPO'} - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
+  const isIndividual = teamColor.startsWith('INDIVIDUAL_');
+  doc.text(`REPORTE ${isIndividual ? 'INDIVIDUAL' : 'DE EQUIPO'} - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
   y += 10;
 
   // --- INFO BLOQUE ---
@@ -3478,7 +3479,7 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Integrantes del ${teamColor.startsWith('INDIVIDUAL_') ? 'Estudiante' : 'Equipo'}:`, 10, y);
+  doc.text(`Integrantes del ${isIndividual ? 'Estudiante' : 'Equipo'}:`, 10, y);
   y += 5;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
@@ -3507,7 +3508,7 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
     startY: y,
     theme: 'striped',
     headStyles: {
-      fillColor: teamColor.startsWith('INDIVIDUAL_') ? '#D3D3D3' : teamColor,
+      fillColor: isIndividual ? '#D3D3D3' : teamColor,
       textColor: 0,
       fontStyle: 'bold'
     },
@@ -3529,55 +3530,41 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
     }
   });
 
+  // ✅ --- COMENTARIO ADICIONAL: Insertado DESPUÉS de la tabla ---
+  let commentY = doc.autoTable.previous.finalY + 5;
+  const commentKey = `${groupId}_${checklistId}_${teamColor}`;
+  const comment = appData.evaluationComments?.[commentKey];
+  if (comment) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Comentario:`, 10, commentY);
+    commentY += 5;
+    doc.setFont('helvetica', 'normal');
+    const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+    doc.text(commentLines, 10, commentY);
+    commentY += commentLines.length * 4 + 5;
+  } else {
+    commentY = doc.autoTable.previous.finalY + 5; // Si no hay comentario, mantener la posición original
+  }
+
+  // --- RESUMEN FINAL DEL EQUIPO ---
   const totalAvgScore = studentsData.reduce((sum, d) => sum + d.average, 0) / studentsData.length;
   const finalPerformance = getPerformanceLevel(totalAvgScore);
-  let finalY = doc.autoTable.previous.finalY + 5;
 
-  // --- RESUMEN FINAL ---
   doc.setFillColor(255, 255, 255);
-  doc.rect(10, finalY - 3, pageWidth - 20, 15, 'F');
+  doc.rect(10, commentY - 3, pageWidth - 20, 15, 'F');
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'bold');
-  doc.text(`PROMEDIO FINAL ${teamColor.startsWith('INDIVIDUAL_') ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, finalY + 5);
-  doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, finalY + 5, { align: 'right' });
-
-
-
-
-// --- COMENTARIO ADICIONAL ---
-const commentKey = `${groupId}_${checklistId}_${teamColor}`;
-const comment = appData.evaluationComments?.[commentKey];
-if (comment) {
-  y += 5;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Comentario:`, 10, y);
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
-  doc.text(commentLines, 10, y);
-  y += commentLines.length * 4 + 5;
-}
-
-
-
-
-
-
-
-
-
-
-
-
+  doc.text(`PROMEDIO FINAL ${isIndividual ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, commentY + 5);
+  doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, commentY + 5, { align: 'right' });
 
   // --- GENERAR Y COMPARTIR PDF ---
   const blob = doc.output('blob');
-  const fileNamePrefix = teamColor.startsWith('INDIVIDUAL_') ? 'Individual_' + studentsData[0].name : `Equipo_${teamColor.replace('#', '')}`;
+  const fileNamePrefix = isIndividual ? 'Individual_' + studentsData[0].name : `Equipo_${teamColor.replace('#', '')}`;
   const fileName = `Reporte_${fileNamePrefix}_${checklist.name.replace(/\s/g, '_')}.pdf`;
   const file = new File([blob], fileName, { type: blob.type });
-  const message = `*Evalyms+ Reporte ${teamColor.startsWith('INDIVIDUAL_') ? 'Individual' : 'de Equipo'}:* ${checklist.name}. Revisa el archivo adjunto.`;
+  const message = `*Evalyms+ Reporte ${isIndividual ? 'Individual' : 'de Equipo'}:* ${checklist.name}. Revisa el archivo adjunto.`;
 
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     navigator.share({
