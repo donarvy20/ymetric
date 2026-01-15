@@ -1001,6 +1001,8 @@
             '#008080', '#FFFF00', '#FFDAB9', '#FFFFE0', '#D3D3D3', '#FFF0F5', 
             '#00FA9A', '#008080'
         ];
+
+       
         
         function getPerformanceColorRGB(level) {
             // Modificación para manejar la nomenclatura exacta (Proceso vs En proceso)
@@ -1036,6 +1038,51 @@
                         }
                     });
                     
+
+
+
+
+
+
+
+
+
+// ✅ AUTOMATIZACIÓN: Asignar identificador único a evaluaciones individuales existentes
+appData.studentGroups.forEach(group => {
+  const groupId = group.id;
+  const evaluationsForGroup = appData.evaluations[groupId] || {};
+  group.students.forEach(student => {
+    const studentId = student.id;
+    Object.keys(evaluationsForGroup).forEach(checklistId => {
+      const evaluations = evaluationsForGroup[checklistId][studentId];
+      const hasEvaluation = evaluations && evaluations.some(score => score > 0);
+      // Si tiene evaluación pero NO tiene color asignado, es individual → usar ID único
+      if (hasEvaluation && !student.groupEvalColors[checklistId]) {
+        student.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+      }
+      // Si tiene el viejo color gris (#D3D3D3 o #D3D3E0), convertirlo a identificador único
+      else if (student.groupEvalColors[checklistId] === '#D3D3D3' || student.groupEvalColors[checklistId] === '#D3D3E0') {
+        student.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+      }
+    });
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                     appData.checklists.forEach(checklist => {
                         if (checklist.linkedGroupId === undefined) checklist.linkedGroupId = '';
                         if (checklist.linkedCategory === undefined) checklist.linkedCategory = '';
@@ -2239,33 +2286,46 @@ async function duplicateChecklist(checklistId) {
         // Variable para controlar si la tabla de evaluación individual está habilitada
 
 
-        function getNextGroupColor() {
-            let usedColors = new Set();
-            
-            appData.studentGroups.forEach(group => {
-                group.students.forEach(student => {
-                    if (student.groupEvalColors) {
-                        Object.values(student.groupEvalColors).forEach(color => {
-                            usedColors.add(color);
-                        });
-                    }
-                });
-            });
+/**
+ * Obtiene el siguiente color disponible para un grupo y checklist específicos.
+ * @param {string} groupId - ID del grupo
+ * @param {string} checklistId - ID de la lista de cotejo
+ * @returns {{ hex: string }}
+ */
+function getNextGroupColor(groupId, checklistId) {
+  // Paso 1: Recopilar solo los colores usados EN ESTE grupo + checklist
+  const usedColors = new Set();
+  const group = appData.studentGroups.find(g => g.id === groupId);
+  if (group) {
+    group.students.forEach(student => {
+      const color = student.groupEvalColors?.[checklistId];
+      if (color) {
+        usedColors.add(color);
+      }
+    });
+  }
 
-            // Encontrar el primer color que NO esté en uso
-            const availableColors = GROUP_COLORS_HEX.filter(color => !usedColors.has(color));
-            
-            if (availableColors.length > 0) {
-                return { hex: availableColors[0] };
-            } else {
-                // Si todos los colores están en uso, tomamos el siguiente cíclicamente de la paleta
-                const allUsed = Array.from(usedColors);
-                const lastColor = allUsed[allUsed.length - 1] || GROUP_COLORS_HEX[0];
-                const lastIndex = GROUP_COLORS_HEX.indexOf(lastColor);
-                const nextIndex = (lastIndex + 1) % GROUP_COLORS_HEX.length;
-                return { hex: GROUP_COLORS_HEX[nextIndex] };
-            }
-        }
+  // Paso 2: Encontrar primer color no usado en este contexto
+  const availableColors = GROUP_COLORS_HEX.filter(color => !usedColors.has(color));
+  if (availableColors.length > 0) {
+    return { hex: availableColors[0] };
+  }
+
+  // Paso 3: Si todos están usados, reciclar en orden cíclico
+  const allUsed = Array.from(usedColors);
+  const lastColor = allUsed.length > 0 ? allUsed[allUsed.length - 1] : GROUP_COLORS_HEX[0];
+  const lastIndex = GROUP_COLORS_HEX.indexOf(lastColor);
+  const nextIndex = (lastIndex + 1) % GROUP_COLORS_HEX.length;
+  return { hex: GROUP_COLORS_HEX[nextIndex] };
+}
+
+
+
+
+
+
+
+
 
         // Función auxiliar para obtener el objeto de nivel por score
         function getLevelByScore(checklist, score) {
@@ -2542,7 +2602,6 @@ const performance = getPerformanceLevel(averageRounded); // ← Usamos el valor 
                 
                 const colorMap = studentData?.groupEvalColors || {};
                 const studentGroupColor = colorMap[checklistId];
-                
                 if (studentGroupColor && isEvaluated) {
                     groupColor = studentGroupColor;
                     checkStyle = `style="background-color: ${groupColor}; border-color: ${groupColor};"`;
@@ -2724,18 +2783,46 @@ function setScoreFromCell(button, studentId, criterionIndex, groupId, checklistI
     }
     appData.evaluations[groupId][checklistId][studentId][criterionIndex] = score;
 
-    // 2. Borrar el color de grupo si el score se pone a 0 o si se hace una evaluación individual
-    if (score === 0) {
-         const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
-         if (studentData) delete studentData.groupEvalColors[checklistId];
-    } else {
-         // Si se evaluó individualmente (score > 0), nos aseguramos de borrar el color de grupo si existe,
-         // para que no parezca que es parte de una evaluación grupal reciente.
-         const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
-         if (studentData && studentData.groupEvalColors[checklistId]) {
-             delete studentData.groupEvalColors[checklistId];
-         }
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+// 2. Gestión del color según tipo de evaluación
+const studentData = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentId);
+if (studentData) {
+  if (score === 0) {
+    // Eliminar cualquier color (equipo o individual)
+    delete studentData.groupEvalColors[checklistId];
+  } else {
+    // Evaluación individual → asignar identificador único (pero visualmente será gris)
+    studentData.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // 3. Update student results and save data (esto actualiza el color del checkbox/celda)
     updateStudentResults(studentId, groupId, checklistId);
@@ -3035,7 +3122,7 @@ function prepareQuickEvaluation(event, studentId = null) {
             
             let assignedColor = null;
             if (!isIndividualEval) {
-                assignedColor = getNextGroupColor().hex;
+                 assignedColor = getNextGroupColor(groupId, checklistId).hex;
             }
             
             const criterionGroups = document.querySelectorAll('#group-evaluation-matrix-container .criterion-group');
@@ -3147,214 +3234,270 @@ isSingleStudentSelected = false;
 
             // Mapear los colores de grupo usados y quién pertenece a ellos
             const colorMap = {}; // { colorHex: [studentId1, studentId2, ...] }
-            
-            group.students.forEach(student => {
-                const color = student.groupEvalColors[checklistId];
-                const studentEvals = evaluations[student.id];
 
-                if (color && studentEvals && studentEvals.filter(s => s > 0).length > 0) {
-                    if (!colorMap[color]) {
-                        colorMap[color] = [];
-                    }
-                    colorMap[color].push(student.name);
-                }
-            });
+
+
+
+            
+group.students.forEach(student => {
+  const color = student.groupEvalColors?.[checklistId];
+  const studentEvals = evaluations[student.id];
+  const hasEvaluation = studentEvals && studentEvals.filter(s => s > 0).length > 0;
+  // Incluir tanto equipos como evaluaciones individuales
+  if (color && hasEvaluation) {
+    if (!colorMap[color]) {
+      colorMap[color] = [];
+    }
+    colorMap[color].push(student.name);
+  }
+});
+
+
+
+
+
+
+
+
 
             if (Object.keys(colorMap).length > 0) {
                 teamReportButtons.classList.remove('d-none');
                 
                 let teamIndex = 1;
-                Object.entries(colorMap).forEach(([colorHex, studentNames]) => {
-                    const studentCount = studentNames.length;
-                    const studentListPreview = studentNames.slice(0, 3).join(', ') + (studentCount > 3 ? '...' : '');
 
-                    const button = document.createElement('button');
-                    button.className = 'btn btn-sm btn-outline-dark btn-icon rounded-pill team-report-btn';
-                    button.style.borderColor = colorHex;
-                    button.style.color = 'black'; // Asegurar texto negro para mejor contraste en botones claros
-                    button.style.backgroundColor = colorHex + '50'; // 30% Opacidad
-                    button.dataset.color = colorHex;
-                    
-                    button.innerHTML = `
-                        <span class="badge" style="background-color: ${colorHex}; color: black; border: 1px solid black;">Equipo ${teamIndex} (${studentCount})</span>
-                        <span class="ms-2 small fw-bold text-dark">${studentListPreview}</span>
-                        <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF</span>
-                    `;
-                    teamReportContainer.appendChild(button);
-                    
-                    button.addEventListener('click', () => generateTeamPDFReport(groupId, checklistId, colorHex));
-                    teamIndex++;
-                });
+
+
+Object.entries(colorMap).forEach(([colorKey, studentNames]) => {
+  const studentCount = studentNames.length;
+  // Detectar si es una evaluación individual (por el prefijo)
+  const isIndividual = studentCount === 1 && colorKey.startsWith('INDIVIDUAL_');
+   const displayColor = isIndividual ? '#D3D3D3' : colorKey; //
+  const teamLabel = isIndividual
+    ? `Evaluación Individual`
+    : `Equipo ${teamIndex} (${studentCount})`;
+  const studentListPreview = studentNames.slice(0, 3).join(', ') + (studentCount > 3 ? '...' : '');
+  const button = document.createElement('button');
+  button.className = 'btn btn-sm btn-outline-dark btn-icon rounded-pill team-report-btn';
+  button.style.borderColor = displayColor;
+  button.style.color = 'black';
+  button.style.backgroundColor = displayColor + '50'; // 30% opacidad
+  button.dataset.color = colorKey; // ← ¡Importante! Guardar el identificador real
+  button.innerHTML = `
+    <span class="badge" style="background-color: ${displayColor}; color: black; border: 1px solid black;">${teamLabel}</span>
+    <span class="ms-2 small fw-bold text-dark">${studentListPreview}</span>
+    <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF</span>
+  `;
+  teamReportContainer.appendChild(button);
+  button.addEventListener('click', () => generateTeamPDFReport(groupId, checklistId, colorKey));
+  if (!isIndividual) teamIndex++; // Solo incrementar índice para equipos reales
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             }
         }
         
-        function generateTeamPDFReport(groupId, checklistId, teamColor) {
-            const group = appData.studentGroups.find(g => g.id === groupId);
-            const checklist = appData.checklists.find(c => c.id === checklistId);
-            const evaluations = appData.evaluations[groupId]?.[checklistId];
-
-            if (!group || !checklist || !evaluations) {
-                showToast('Datos faltantes para el reporte del equipo.', 'danger');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const center = pageWidth / 2;
-            let y = 15;
-            
-            const teamStudents = group.students.filter(s => s.groupEvalColors[checklistId] === teamColor);
-
-            if (teamStudents.length === 0) {
-                showToast('No se encontraron estudiantes en este equipo para el reporte.', 'danger');
-                return;
-            }
-
-            const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
-            const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
-            
-            const studentsData = teamStudents.map(student => {
-                const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
-                const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
-                
-                const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
-                const criteriaCount = evaluatedScores.length;
-                const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
-                const performance = getPerformanceLevel(average);
-
-                return {
-                    name: student.name,
-                    evals: studentEvals,
-                    total: totalScore,
-                    average: average,
-                    performance: performance.name
-                };
-            });
-
-            // --- TÍTULO ---
-            doc.setFontSize(24);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(15, 76, 129);
-            doc.text(`Evalyms+`, center, y, { align: 'center' });
-            y += 15;
-
-            doc.setFontSize(14);
-            doc.setTextColor(108, 117, 125);
-            doc.text(`REPORTE DE EQUIPO - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
-            y += 10;
-            
-            // --- INFO BLOQUE ---
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0); 
-            doc.setFont('helvetica', 'normal');
-            
-            doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
-            doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
-            doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
-            
-            doc.text(`Categoría: ${checklist.linkedCategory} (${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
-            doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 10, y + 10, { align: 'right' });
-            y += 15;
-            
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`Integrantes del Equipo:`, 10, y);
-            y += 5;
-            
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            let memberNames = studentsData.map(d => d.name);
-            doc.text(memberNames, 10, y, { maxWidth: pageWidth - 20 });
-            y += (Math.ceil(memberNames.length / 3) * 4) + 5; 
-
-            // --- TABLA DE CRITERIOS (Lista de Cotejo para el equipo) ---
-            const criteriaHead = ['Criterio de Evaluación', 'Puntaje Promedio', 'Nivel Promedio'];
-            const criteriaBody = [];
-
-            checklist.criteria.forEach((criterion, i) => {
-                if (criterion === '---') {
-                    criteriaBody.push(['', '----- SEPARADOR DE SECCIÓN -----', '']);
-                    return;
-                }
-                
-                const scores = studentsData.map(d => d.evals[i] || 0);
-                const sumScores = scores.reduce((sum, score) => sum + score, 0);
-                const avgScore = scores.length > 0 ? sumScores / scores.length : 0;
-                const avgLevel = getPerformanceLevel(avgScore).name;
-
-                criteriaBody.push([criterion, avgScore.toFixed(1), avgLevel]);
-            });
-
-            doc.autoTable({
-                head: [criteriaHead],
-                body: criteriaBody,
-                startY: y, 
-                theme: 'striped',
-                headStyles: { 
-                    fillColor: teamColor, 
-                    textColor: 0, 
-                    fontStyle: 'bold' 
-                },
-                styles: { fontSize: 9, cellPadding: 2 },
-                columnStyles: {
-                    1: { halign: 'center', fontStyle: 'bold' },
-                    2: { halign: 'center' }
-                },
-                didParseCell: (data) => {
-                    if (data.section === 'body' && data.column.index === 2) { 
-                        const level = data.cell.raw;
-                        data.cell.styles.fillColor = getPerformanceColorRGB(level);
-                        data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
-                    } else if (data.row.raw[1].includes('SEPARADOR')) {
-                         data.cell.styles.fillColor = [220, 220, 220]; 
-                         data.cell.styles.fontStyle = 'italic';
-                         data.cell.styles.textColor = [100, 100, 100];
-                    }
-                }
-            });
-            
-            const totalAvgScore = studentsData.reduce((sum, d) => sum + d.average, 0) / studentsData.length;
-            const finalPerformance = getPerformanceLevel(totalAvgScore);
-
-            let finalY = doc.autoTable.previous.finalY + 5;
-            
-            // --- RESUMEN FINAL DEL EQUIPO ---
-           doc.setFillColor(255, 255, 255); 
-            doc.rect(10, finalY - 3, pageWidth - 20, 15, 'F'); 
-            
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0); 
-            doc.setFont('helvetica', 'bold');
-            doc.text(`PROMEDIO FINAL DEL EQUIPO (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, finalY + 5);
-            doc.text(`NIVEL DE DESEMPEÑO DEL EQUIPO: ${finalPerformance.name}`, pageWidth - 15, finalY + 5, { align: 'right' });
+       
 
 
-            // Generar el Blob y archivo para compartir
-            const blob = doc.output('blob');
-            const teamName = `Equipo_${teamColor.replace('#', '')}`;
-            const fileName = `Reporte_Equipo_${teamName}_${checklist.name.replace(/\s/g, '_')}.pdf`;
-            const file = new File([blob], fileName, { type: blob.type });
 
-            const message = `*Evalyms+ Reporte de Equipo:* ${checklist.name} para ${teamName}. Revisa el archivo adjunto.`;
 
-            // Usar la lógica de compartir nativo
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: fileName,
-                    text: message
-                }).then(() => {
-                    showToast('PDF compartido mediante el diálogo nativo "Enviar a".', 'success');
-                }).catch((error) => {
-                    console.error('Error al compartir de forma nativa:', error);
-                    showFallbackShare(doc.output('datauristring'), message, fileName);
-                });
-            } else {
-                showFallbackShare(doc.output('datauristring'), message, fileName);
-            }
-        }
+
+
+function generateTeamPDFReport(groupId, checklistId, teamColor) {
+  const group = appData.studentGroups.find(g => g.id === groupId);
+  const checklist = appData.checklists.find(c => c.id === checklistId);
+  const evaluations = appData.evaluations[groupId]?.[checklistId];
+  if (!group || !checklist || !evaluations) {
+    showToast('Datos faltantes para el reporte del equipo.', 'danger');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const center = pageWidth / 2;
+  let y = 15;
+
+  // ✅ LÓGICA CORREGIDA: Detectar si es individual o grupal y obtener estudiantes correctamente
+  let teamStudents = [];
+  if (teamColor.startsWith('INDIVIDUAL_')) {
+    const targetStudentId = teamColor.replace('INDIVIDUAL_', '');
+    const student = group.students.find(s => s.id === targetStudentId);
+    if (student) {
+      teamStudents = [student];
+    }
+  } else {
+    teamStudents = group.students.filter(s => s.groupEvalColors[checklistId] === teamColor);
+  }
+
+  if (teamStudents.length === 0) {
+    showToast('No se encontraron estudiantes en este equipo para el reporte.', 'danger');
+    return;
+  }
+
+  const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+  const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+
+  const studentsData = teamStudents.map(student => {
+    const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
+    const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+    const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+    const criteriaCount = evaluatedScores.length;
+    const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+    const performance = getPerformanceLevel(average);
+    return {
+      name: student.name,
+      evals: studentEvals,
+      total: totalScore,
+      average: average,
+      performance: performance.name
+    };
+  });
+
+  // --- TÍTULO ---
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 76, 129);
+  doc.text(`Evalyms+`, center, y, { align: 'center' });
+  y += 15;
+  doc.setFontSize(14);
+  doc.setTextColor(108, 117, 125);
+  doc.text(`REPORTE ${teamColor.startsWith('INDIVIDUAL_') ? 'INDIVIDUAL' : 'DE EQUIPO'} - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
+  y += 10;
+
+  // --- INFO BLOQUE ---
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+  doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+  doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
+  doc.text(`Categoría: ${checklist.linkedCategory} (${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+  doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 10, y + 10, { align: 'right' });
+  y += 15;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Integrantes del ${teamColor.startsWith('INDIVIDUAL_') ? 'Estudiante' : 'Equipo'}:`, 10, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  let memberNames = studentsData.map(d => d.name);
+  doc.text(memberNames, 10, y, { maxWidth: pageWidth - 20 });
+  y += (Math.ceil(memberNames.length / 3) * 4) + 5;
+
+  // --- TABLA DE CRITERIOS ---
+  const criteriaHead = ['Criterio de Evaluación', 'Puntaje Promedio', 'Nivel Promedio'];
+  const criteriaBody = [];
+  checklist.criteria.forEach((criterion, i) => {
+    if (criterion === '---') {
+      criteriaBody.push(['', '----- SEPARADOR DE SECCIÓN -----', '']);
+      return;
+    }
+    const scores = studentsData.map(d => d.evals[i] || 0);
+    const sumScores = scores.reduce((sum, score) => sum + score, 0);
+    const avgScore = scores.length > 0 ? sumScores / scores.length : 0;
+    const avgLevel = getPerformanceLevel(avgScore).name;
+    criteriaBody.push([criterion, avgScore.toFixed(1), avgLevel]);
+  });
+
+  doc.autoTable({
+    head: [criteriaHead],
+    body: criteriaBody,
+    startY: y,
+    theme: 'striped',
+    headStyles: {
+      fillColor: teamColor.startsWith('INDIVIDUAL_') ? '#D3D3D3' : teamColor,
+      textColor: 0,
+      fontStyle: 'bold'
+    },
+    styles: { fontSize: 9, cellPadding: 2 },
+    columnStyles: {
+      1: { halign: 'center', fontStyle: 'bold' },
+      2: { halign: 'center' }
+    },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.column.index === 2) {
+        const level = data.cell.raw;
+        data.cell.styles.fillColor = getPerformanceColorRGB(level);
+        data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+      } else if (data.row.raw[1].includes('SEPARADOR')) {
+        data.cell.styles.fillColor = [220, 220, 220];
+        data.cell.styles.fontStyle = 'italic';
+        data.cell.styles.textColor = [100, 100, 100];
+      }
+    }
+  });
+
+  const totalAvgScore = studentsData.reduce((sum, d) => sum + d.average, 0) / studentsData.length;
+  const finalPerformance = getPerformanceLevel(totalAvgScore);
+  let finalY = doc.autoTable.previous.finalY + 5;
+
+  // --- RESUMEN FINAL ---
+  doc.setFillColor(255, 255, 255);
+  doc.rect(10, finalY - 3, pageWidth - 20, 15, 'F');
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`PROMEDIO FINAL ${teamColor.startsWith('INDIVIDUAL_') ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, finalY + 5);
+  doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, finalY + 5, { align: 'right' });
+
+  // --- GENERAR Y COMPARTIR PDF ---
+  const blob = doc.output('blob');
+  const fileNamePrefix = teamColor.startsWith('INDIVIDUAL_') ? 'Individual_' + studentsData[0].name : `Equipo_${teamColor.replace('#', '')}`;
+  const fileName = `Reporte_${fileNamePrefix}_${checklist.name.replace(/\s/g, '_')}.pdf`;
+  const file = new File([blob], fileName, { type: blob.type });
+  const message = `*Evalyms+ Reporte ${teamColor.startsWith('INDIVIDUAL_') ? 'Individual' : 'de Equipo'}:* ${checklist.name}. Revisa el archivo adjunto.`;
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({
+      files: [file],
+      title: fileName,
+      text: message
+    }).then(() => {
+      showToast('PDF compartido mediante el diálogo nativo "Enviar a".', 'success');
+    }).catch((error) => {
+      console.error('Error al compartir de forma nativa:', error);
+      showFallbackShare(doc.output('datauristring'), message, fileName);
+    });
+  } else {
+    showFallbackShare(doc.output('datauristring'), message, fileName);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         function renderReportSelectors() {
@@ -4763,4 +4906,5 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
