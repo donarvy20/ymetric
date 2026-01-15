@@ -3531,7 +3531,7 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
   });
 
   // ✅ --- COMENTARIO ADICIONAL: Insertado DESPUÉS de la tabla ---
-  let commentY = doc.autoTable.previous.finalY + 9;
+  let commentY = doc.autoTable.previous.finalY + 15;
   const commentKey = `${groupId}_${checklistId}_${teamColor}`;
   const comment = appData.evaluationComments?.[commentKey];
   if (comment) {
@@ -5009,6 +5009,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
