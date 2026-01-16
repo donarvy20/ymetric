@@ -4334,7 +4334,7 @@ doc.autoTable({
 
                         
 
-                        
+/*                       
                         // ✅ --- COMENTARIO ADICIONAL EN REPORTE DETALLADO ---
 let commentY = doc.autoTable.previous.finalY + 10;
 const commentKey = `${groupId}_${checklistId}_INDIVIDUAL_${studentData.id}`;
@@ -4354,6 +4354,48 @@ if (comment) {
 
 let finalY = commentY;
 
+*/
+
+
+
+// ✅ --- COMENTARIO ADICIONAL EN REPORTE DETALLADO (soporta individual y grupal) ---
+let commentY = doc.autoTable.previous.finalY + 10;
+let comment = '';
+
+// 1. Buscar clave individual
+const individualKey = `${groupId}_${checklistId}_INDIVIDUAL_${studentData.id}`;
+if (appData.evaluationComments?.[individualKey]) {
+  comment = appData.evaluationComments[individualKey];
+} else {
+  // 2. Buscar clave grupal: obtener el color/identificador del equipo del estudiante
+  const student = appData.studentGroups.find(g => g.id === groupId)?.students.find(s => s.id === studentData.id);
+  if (student && student.groupEvalColors && student.groupEvalColors[checklistId]) {
+    const teamColor = student.groupEvalColors[checklistId];
+    // Evitar usar claves "INDIVIDUAL_" aquí (ya se intentó arriba)
+    if (!teamColor.startsWith('INDIVIDUAL_')) {
+      const teamKey = `${groupId}_${checklistId}_${teamColor}`;
+      comment = appData.evaluationComments?.[teamKey] || '';
+    }
+  }
+}
+
+if (comment) {
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Comentario:`, 10, commentY);
+  commentY += 5;
+  doc.setFont('helvetica', 'normal');
+  const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+  doc.text(commentLines, 10, commentY);
+  commentY += commentLines.length * 4 + 5;
+} else {
+  commentY = doc.autoTable.previous.finalY + 10;
+}
+
+let finalY = commentY;
+
+
+                        
 
                  
                         /*
@@ -5182,6 +5224,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
