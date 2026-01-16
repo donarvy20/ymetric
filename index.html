@@ -4332,37 +4332,8 @@ doc.autoTable({
                         });
 
 
-  // ✅ --- COMENTARIO ADICIONAL: Insertado DESPUÉS de la tabla ---
-  let commentY = doc.autoTable.previous.finalY + 15;
-  const commentKey = `${groupId}_${checklistId}_${teamColor}`;
-  const comment = appData.evaluationComments?.[commentKey];
-  if (comment) {
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Comentario:`, 10, commentY);
-    commentY += 5;
-    doc.setFont('helvetica', 'normal');
-    const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
-    doc.text(commentLines, 10, commentY);
-    commentY += commentLines.length * 4 + 5;
-  } else {
-    commentY = doc.autoTable.previous.finalY + 5; // Si no hay comentario, mantener la posición original
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-
                         
-/*
+
                         
                         // ✅ --- COMENTARIO ADICIONAL EN REPORTE DETALLADO ---
 let commentY = doc.autoTable.previous.finalY + 10;
@@ -4382,15 +4353,9 @@ if (comment) {
 }
 
 let finalY = commentY;
-*\
 
 
-
-
-
-
-
-                        
+                 
                         /*
                         
                         // --- RESUMEN Y DESEMPEÑO (Bloques claros) --
@@ -5217,6 +5182,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
