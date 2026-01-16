@@ -3557,7 +3557,7 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'bold');
   doc.text(`PROMEDIO FINAL ${isIndividual ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, commentY + 5);
-  doc.text(`NIVEL DE DESEMPEÑOxxx: ${finalPerformance.name}`, pageWidth - 15, commentY + 5, { align: 'right' });
+  doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, commentY + 5, { align: 'right' });
 
   // --- GENERAR Y COMPARTIR PDF ---
   const blob = doc.output('blob');
@@ -5224,6 +5224,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
