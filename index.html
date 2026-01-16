@@ -4119,7 +4119,14 @@ if (type === 'consolidated') {
     y += 5;
     doc.text(`Fecha de Generación: ${formattedDate}`, center, y, { align: 'center' });
     y += 8;
-    doc.autoTable({
+
+
+
+
+
+
+
+doc.autoTable({
         head: [head],
         body: body,
         startY: y,
@@ -4135,7 +4142,8 @@ if (type === 'consolidated') {
                 const level = data.cell.raw;
                 data.cell.styles.fillColor = getPerformanceColorRGB(level);
                 data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
-                data.cell.styles.fontStyle = 'bold'; 
+                data.cell.styles.fontStyle = 'bold';
+          
              }
              if (data.section === 'body' && (isFinalBase20Col || isFinalBase5Col)) {
                 data.cell.styles.fontStyle = 'bold'; 
@@ -4143,25 +4151,31 @@ if (type === 'consolidated') {
              }
         }
     });
-    let finalY = doc.autoTable.previous.finalY + 5;
+    let finalY = doc.autoTable.previous.finalY + 5; 
+
+
+
+
+
+
+
+
+
+
     doc.setFontSize(8);
     doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
     const formulaText = group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1 
         ? 'La Situación Final (SF) se calcula como la sumatoria de [ (Promedio Base 5 por Lista) × (Peso Total de Categoría / # Listas en esa Categoría) ].'
         : 'La Situación Final (SF) se calcula como el promedio simple de las Notas Base 5 de todas las evaluaciones.';
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('arial', 'bold');
     doc.text('Fórmula de Situación Final (SF):', 10, finalY);
     finalY += 4;
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('arial', 'normal');
     let formulaDetails = [];
     if (group.categories.list.length > 0 && Math.abs(group.categories.list.reduce((sum, c) => sum + c.weight, 0) - 100) < 1) {
-        formulaDetails = [
-            'SF = Σ [ (Promedio Base 5 de la Lista) × (Peso Total de Categoría / Número de Listas en esa Categoría) ]'
-        ];
+        formulaDetails = ['SF = sumatoria [ (Promedio Base 5 de la Lista) × (Peso Total de Categoría / Número de Listas en esa Categoría) ]'];
     } else {
-        formulaDetails = [
-            'SF = Σ (Promedio Base 5 de todas las Listas) / (Número Total de Listas Evaluadas)'
-        ];
+        formulaDetails = ['SF = sumatoria (Promedio Base 5 de todas las Listas) / (Número Total de Listas Evaluadas)'];
     }
     formulaDetails.forEach(line => {
         doc.text(line, 10, finalY);
@@ -4172,44 +4186,6 @@ if (type === 'consolidated') {
     showToast(`Reporte Consolidado generado con éxito.`, 'success');
     return;
                  }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4274,7 +4250,7 @@ if (type === 'consolidated') {
                         doc.setFont('helvetica', 'bold');
                         doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
                         doc.text(`Evalyms+`, center, y, { align: 'center' });
-                        y += 5;
+                        y += 10;
 
                         doc.setFontSize(12);
                         doc.setFont('helvetica', 'normal');
@@ -4355,9 +4331,33 @@ if (type === 'consolidated') {
                             }
                         });
                         
-                        let finalY = doc.autoTable.previous.finalY + 10;
+                        // ✅ --- COMENTARIO ADICIONAL EN REPORTE DETALLADO ---
+let commentY = doc.autoTable.previous.finalY + 10;
+const commentKey = `${groupId}_${checklistId}_INDIVIDUAL_${studentData.id}`;
+const comment = appData.evaluationComments?.[commentKey];
+if (comment) {
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Comentario:`, 10, commentY);
+  commentY += 5;
+  doc.setFont('helvetica', 'normal');
+  const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+  doc.text(commentLines, 10, commentY);
+  commentY += commentLines.length * 4 + 5;
+} else {
+  commentY = doc.autoTable.previous.finalY + 10;
+}
+
+let finalY = commentY;
 
 
+
+
+
+
+
+
+                        
                         /*
                         
                         // --- RESUMEN Y DESEMPEÑO (Bloques claros) --
@@ -4413,7 +4413,7 @@ doc.text(`PROMEDIO (Máx ${maxScorePerCriterion.toFixed(1)}):`, summaryX + 5, fi
 doc.text(`${averageRounded}`, summaryX + 70, finalY); // ✅ Mostrar el redondeado
 finalY += 10;
 // Performance highlight (inside the box)
-doc.setFontSize(14);
+doc.setFontSize(12);
 doc.setTextColor(ACCENT_RED[0], ACCENT_RED[1], ACCENT_RED[2]); 
 // ✅ Usar el nivel basado en el promedio redondeado
 doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY);
@@ -4439,7 +4439,7 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
                         
                         
                         // 2. Box for Scale Reference
-                        let scaleY = doc.autoTable.previous.finalY + 10; 
+/*                         let scaleY = doc.autoTable.previous.finalY + 10; 
                         doc.setFontSize(10);
                         doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
                         doc.text('ESCALA DE DESEMPEÑO:', scaleX, scaleY);
@@ -4452,14 +4452,20 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
                         scaleY += 5;
                         doc.text(`4.0 - 4.9: Logrado`, scaleX, scaleY);
                         scaleY += 5;
-                        doc.text(`5.0: Destacado`, scaleX, scaleY);
+                        doc.text(`5.0: Destacado`, scaleX, scaleY); */
                     });
                 }
+ 
                 
-               if (type === 'summary') {
+
+
+
+  /*              
+if (type === 'summary') {
     // *************************************************************
     // REPORTE RESUMEN GRUPAL (VERTICAL)
     // *************************************************************
+  
 
     let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
     
@@ -4470,7 +4476,7 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
     doc.text(`Evalyms+`, center, y, { align: 'center' });
-    y += 5;
+    y += 10;
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -4621,16 +4627,16 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
     doc.text('LEYENDA DE CRITERIOS:', 10, legendY);
-    legendY += 4;
+    legendY += 6;
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
+    doc.setFontSize(9);
     
     validCriteria.forEach((criterion, i) => {
         const criterionText = `C${i + 1}: ${criterion.text}`;
         const splitText = doc.splitTextToSize(criterionText, pageWidth - 20);
-        doc.text(splitText, 10, legendY);
-        legendY += splitText.length * 3;
+        doc.text(splitText, 20, legendY);
+        legendY += splitText.length * 5;
         
         // Si nos acercamos al final de la página, agregar nueva página
         if (legendY > doc.internal.pageSize.getHeight() - 20) {
@@ -4639,6 +4645,175 @@ doc.text(`NIVEL DE DESEMPEÑO: ${performanceForPDF.name}`, summaryX + 5, finalY)
         }
     });
 }
+
+*/  
+
+
+
+if (type === 'summary') {
+  // *************************************************************
+  // REPORTE RESUMEN GRUPAL (VERTICAL)
+  // *************************************************************
+  let reportTitle = `REPORTE RESUMEN GRUPAL (PARA EL DOCENTE)`;
+  y = 15; // Resetear Y
+  // --- ENCABEZADO Y TÍTULO VISUAL ---
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(PRIMARY_BLUE[0], PRIMARY_BLUE[1], PRIMARY_BLUE[2]);
+  doc.text(`Evalyms+`, center, y, { align: 'center' });
+  y += 5;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(SECONDARY_GRAY[0], SECONDARY_GRAY[1], SECONDARY_GRAY[2]);
+  doc.text(reportTitle, center, y, { align: 'center' });
+  y += 10;
+  const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+  doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+  doc.text(`Grupo: ${group.name} (${group.section})`, pageWidth - 10, y, { align: 'right' });
+  doc.text(`Lista de Cotejo: ${checklist.name} (Cat: ${checklist.linkedCategory} - ${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+  doc.text(`Fecha: ${formattedDate}`, 10, y + 10);
+  y += 15;
+  let totalSumOfAverages = allStudentsData.reduce((sum, d) => sum + d.average, 0);
+  let totalStudentsEvaluated = allStudentsData.filter(d => d.total > 0).length;
+  const maxAvg = maxScorePerCriterion;
+  const finalNormalizedAverage = totalStudentsEvaluated > 0
+    ? totalSumOfAverages / totalStudentsEvaluated
+    : 0;
+  const finalAverageRounded = roundCustom(finalNormalizedAverage); // ✅ Redondeamos el promedio final
+  const performance = getPerformanceLevel(finalAverageRounded); // ✅ Usamos el promedio redondeado
+  const performanceName = performance.name;
+  // Filtrar criterios válidos (sin separadores)
+  const validCriteria = checklist.criteria.map((c, index) => ({ text: c, index: index }))
+    .filter(item => item.text !== '---');
+  // Construir encabezados de columnas
+  const head = [['Estudiante']];
+  // Agregar columnas de criterios
+  validCriteria.forEach((criterion, i) => {
+    head[0].push(`C${i + 1}`); // C1, C2, C3, etc.
+  });
+  // Agregar columnas finales
+  head[0].push(`Total (${totalMaxScore})`);
+  head[0].push(`Prom (${maxAvg.toFixed(1)})`);
+  head[0].push('Nivel de Desempeño');
+  // Construir cuerpo de la tabla
+  const body = allStudentsData.map(data => {
+    const row = [data.name];
+    // Agregar puntajes de cada criterio
+    validCriteria.forEach(criterion => {
+      const score = data.evals[criterion.index] || 0;
+      row.push(score > 0 ? score.toString() : '-');
+    });
+    // Agregar totales y desempeño
+    row.push(data.total.toString());
+    row.push(roundCustom(data.average).toString());
+    row.push(data.performance);
+    return row;
+  });
+  doc.autoTable({
+    head: head,
+    body: body,
+    startY: y + 5,
+    theme: 'grid',
+    headStyles: {
+      fillColor: PRIMARY_BLUE,
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'center'
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      textColor: BLACK
+    },
+    columnStyles: {
+      0: { cellWidth: 35, halign: 'left' }
+    },
+    didParseCell: (data) => {
+      const totalCols = data.table.columns.length;
+      const criteriaColsCount = validCriteria.length;
+      if (data.column.index > 0) {
+        data.cell.styles.halign = 'center';
+      }
+      if (data.section === 'body' && data.column.index > 0 && data.column.index <= criteriaColsCount) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.textColor = BLACK;
+      }
+      if (data.section === 'body' && data.column.index === totalCols - 1) {
+        const level = data.cell.raw;
+        data.cell.styles.fillColor = getPerformanceColorRGB(level);
+        data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+        data.cell.styles.fontStyle = 'bold';
+      }
+      if (data.section === 'body' && (data.column.index === totalCols - 3 || data.column.index === totalCols - 2)) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.textColor = BLACK;
+      }
+    },
+    foot: [
+      (() => {
+        const footRow = ['RESUMEN GRUPAL:'];
+        for (let i = 0; i < validCriteria.length; i++) {
+          footRow.push('-');
+        }
+        footRow.push({ content: `PROMEDIO FINAL: ${roundCustom(finalNormalizedAverage)}`, colSpan: 2 });
+        footRow.push(`${performanceName}`);
+        return footRow;
+      })()
+    ],
+    footStyles: {
+      fillColor: SECONDARY_GRAY,
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'center'
+    }
+  });
+
+  // ✅ --- COMENTARIO ADICIONAL EN REPORTE RESUMEN GRUPAL ---
+  let commentY = doc.autoTable.previous.finalY + 10;
+  const commentKey = `${groupId}_${checklistId}_#D3D3D3`; // ← Clave para el equipo "resumen grupal"
+  const comment = appData.evaluationComments?.[commentKey];
+  if (comment) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Comentario:`, 10, commentY);
+    commentY += 5;
+    doc.setFont('helvetica', 'normal');
+    const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+    doc.text(commentLines, 10, commentY);
+    commentY += commentLines.length * 4 + 5;
+  } else {
+    commentY = doc.autoTable.previous.finalY + 10;
+  }
+
+  // Agregar leyenda de criterios al final
+  let legendY = commentY;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('LEYENDA DE CRITERIOS:', 10, legendY);
+  legendY += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  validCriteria.forEach((criterion, i) => {
+    const criterionText = `C${i + 1}: ${criterion.text}`;
+    const splitText = doc.splitTextToSize(criterionText, pageWidth - 20);
+    doc.text(splitText, 10, legendY);
+    legendY += splitText.length * 3;
+    // Si nos acercamos al final de la página, agregar nueva página
+    if (legendY > doc.internal.pageSize.getHeight() - 20) {
+      doc.addPage();
+      legendY = 15;
+    }
+  });
+}
+
+
+
 
 doc.save(fileName);
 showToast(`Reporte ${type} generado como PDF.`, 'success');
@@ -5009,6 +5184,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
