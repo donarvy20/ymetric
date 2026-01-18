@@ -3326,6 +3326,48 @@ isSingleStudentSelected = false;
                 }
             }
         }
+
+
+
+
+        /**
+ * Asegura que todas las evaluaciones individuales tengan el identificador correcto
+ * en student.groupEvalColors[checklistId] = 'INDIVIDUAL_<studentId>'
+ */
+function reconcileIndividualEvaluations(groupId, checklistId) {
+    const group = appData.studentGroups.find(g => g.id === groupId);
+    const evaluations = appData.evaluations[groupId]?.[checklistId];
+    if (!group || !evaluations) return;
+
+    group.students.forEach(student => {
+        const studentId = student.id;
+        const studentEvals = evaluations[studentId];
+        const hasEvaluation = studentEvals && studentEvals.some(score => score > 0);
+
+        // Si tiene evaluación pero NO tiene color asignado → es individual
+        if (hasEvaluation && !student.groupEvalColors[checklistId]) {
+            student.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+        }
+        // Si tiene el viejo color gris → convertirlo a identificador único
+        else if (student.groupEvalColors[checklistId] === '#D3D3D3' || student.groupEvalColors[checklistId] === '#D3D3E0') {
+            student.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+        }
+        // Si tiene evaluación pero tiene un color de equipo → ¡eliminarlo! (porque es individual)
+        else if (hasEvaluation && student.groupEvalColors[checklistId] && !student.groupEvalColors[checklistId].startsWith('INDIVIDUAL_')) {
+            // Verificar si realmente es individual: ¿otros estudiantes tienen ese color?
+            const color = student.groupEvalColors[checklistId];
+            const teammatesWithSameColor = group.students.filter(s => 
+                s.id !== studentId && 
+                s.groupEvalColors[checklistId] === color &&
+                evaluations[s.id]?.some(score => score > 0)
+            );
+            if (teammatesWithSameColor.length === 0) {
+                // Nadie más tiene ese color → es individual disfrazado
+                student.groupEvalColors[checklistId] = `INDIVIDUAL_${studentId}`;
+            }
+        }
+    });
+}
         
         function renderTeamReportButtons() {
             const groupId = document.getElementById('report-group').value;
@@ -3336,7 +3378,9 @@ isSingleStudentSelected = false;
             teamReportButtons.classList.add('d-none');
             
             if (!groupId || !checklistId) return;
+ reconcileIndividualEvaluations(groupId, checklistId);
 
+            
             const group = appData.studentGroups.find(g => g.id === groupId);
             const evaluations = appData.evaluations[groupId]?.[checklistId];
 
@@ -5250,6 +5294,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
