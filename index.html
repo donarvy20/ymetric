@@ -1274,6 +1274,10 @@ appData.studentGroups.forEach(group => {
                         renderCategoriesList(targetGroup); 
                         saveData();
                         renderStudentGroups(); // Refrescar lista de grupos
+                        if (document.getElementById('reports-module').classList.contains('active-module')) {
+                            renderTeamReportButtons();
+                            }
+
                     }
                 });
             });
@@ -1587,6 +1591,13 @@ appData.studentGroups.forEach(group => {
             }
 
             saveData();
+
+if (document.getElementById('reports-module').classList.contains('active-module')) {
+    renderTeamReportButtons();
+}
+
+
+            
             renderStudentGroups();
             const modal = bootstrap.Modal.getInstance(document.getElementById('studentGroupModal'));
             modal.hide();
@@ -5240,6 +5251,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
