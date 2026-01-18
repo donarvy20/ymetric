@@ -3439,10 +3439,36 @@ Object.entries(colorMap).forEach(([colorKey, studentNames]) => {
   button.innerHTML = `
     <span class="badge" style="background-color: ${displayColor}; color: black; border: 1px solid black;">${teamLabel}</span>
     <span class="ms-2 small fw-bold text-dark">${studentListPreview}</span>
-    <span class="ms-auto"><i class="bi bi-box-arrow-up-right"></i> Exportar PDF</span>
+  <div class="ms-auto d-flex gap-2">
+  <span><i class="bi bi-box-arrow-up-right"></i> Exportar PDF</span>
+  <span><i class="bi bi-download"></i> Descargar PDF</span>
+</div>
   `;
   teamReportContainer.appendChild(button);
+
+
+
+
+button.addEventListener('click', (e) => {
+    const target = e.target;
+    // Verificar si se hizo clic en "Descargar PDF"
+    if (target.closest('span')?.querySelector('.bi-download')) {
+        downloadTeamPDFReport(groupId, checklistId, colorKey);
+    } else {
+        // Por defecto: abrir/Exportar PDF
+        generateTeamPDFReport(groupId, checklistId, colorKey);
+    }
+});
+
+
+    
+ /*   
   button.addEventListener('click', () => generateTeamPDFReport(groupId, checklistId, colorKey));
+*/
+
+
+
+    
   if (!isIndividual) teamIndex++; // Solo incrementar índice para equipos reales
 });
 
@@ -3656,6 +3682,171 @@ function generateTeamPDFReport(groupId, checklistId, teamColor) {
 
 
 
+
+
+
+
+        /////////////////////////////
+
+        function downloadTeamPDFReport(groupId, checklistId, teamColor) {
+    const group = appData.studentGroups.find(g => g.id === groupId);
+    const checklist = appData.checklists.find(c => c.id === checklistId);
+    const evaluations = appData.evaluations[groupId]?.[checklistId];
+    if (!group || !checklist || !evaluations) {
+        showToast('Datos faltantes para el reporte del equipo.', 'danger');
+        return;
+    }
+
+    // ✅ CORRECCIÓN: Detectar estudiantes correctamente (incluyendo individuales)
+    let teamStudents = [];
+    if (teamColor.startsWith('INDIVIDUAL_')) {
+        const targetStudentId = teamColor.replace('INDIVIDUAL_', '');
+        const student = group.students.find(s => s.id === targetStudentId);
+        if (student) {
+            teamStudents = [student];
+        }
+    } else {
+        teamStudents = group.students.filter(s => s.groupEvalColors[checklistId] === teamColor);
+    }
+
+    if (teamStudents.length === 0) {
+        showToast('No se encontraron estudiantes en este equipo para el reporte.', 'danger');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const center = pageWidth / 2;
+    let y = 15;
+    const maxScorePerCriterion = checklist.levels.reduce((max, level) => Math.max(max, level.score), 0);
+    const categoryWeight = group.categories.list.find(c => c.name === checklist.linkedCategory)?.weight || 100;
+    const studentsData = teamStudents.map(student => {
+        const studentEvals = evaluations[student.id] || new Array(checklist.criteria.length).fill(0);
+        const evaluatedScores = studentEvals.filter((_, index) => checklist.criteria[index] !== '---');
+        const totalScore = evaluatedScores.reduce((sum, score) => sum + (score || 0), 0);
+        const criteriaCount = evaluatedScores.length;
+        const average = criteriaCount > 0 ? totalScore / criteriaCount : 0;
+        const performance = getPerformanceLevel(average);
+        return {
+            name: student.name,
+            evals: studentEvals,
+            total: totalScore,
+            average: average,
+            performance: performance.name
+        };
+    });
+
+    // --- TÍTULO ---
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 76, 129);
+    doc.text(`Evalyms+`, center, y, { align: 'center' });
+    y += 15;
+    doc.setFontSize(14);
+    doc.setTextColor(108, 117, 125);
+    const isIndividual = teamColor.startsWith('INDIVIDUAL_');
+    doc.text(`REPORTE ${isIndividual ? 'INDIVIDUAL' : 'DE EQUIPO'} - ${checklist.name.toUpperCase()}`, center, y, { align: 'center' });
+    y += 10;
+
+    // --- INFO BLOQUE ---
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Institución: ${appData.institution || 'N/A'}`, 10, y);
+    doc.text(`Docente: ${appData.teacher || 'N/A'}`, 10, y + 5);
+    doc.text(`Grupo: ${group.name} (${group.section})`, 10, y + 10);
+    doc.text(`Categoría: ${checklist.linkedCategory} (${categoryWeight}%)`, pageWidth - 10, y + 5, { align: 'right' });
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, pageWidth - 10, y + 10, { align: 'right' });
+    y += 15;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Integrantes del ${isIndividual ? 'Estudiante' : 'Equipo'}:`, 10, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    let memberNames = studentsData.map(d => d.name);
+    doc.text(memberNames, 10, y, { maxWidth: pageWidth - 20 });
+    y += (Math.ceil(memberNames.length / 3) * 4) + 5;
+
+    // --- TABLA DE CRITERIOS ---
+    const criteriaHead = ['Criterio de Evaluación', 'Puntaje Promedio', 'Nivel Promedio'];
+    const criteriaBody = [];
+    checklist.criteria.forEach((criterion, i) => {
+        if (criterion === '---') {
+            criteriaBody.push(['', '----- SEPARADOR DE SECCIÓN -----', '']);
+            return;
+        }
+        const scores = studentsData.map(d => d.evals[i] || 0);
+        const sumScores = scores.reduce((sum, score) => sum + score, 0);
+        const avgScore = scores.length > 0 ? sumScores / scores.length : 0;
+        const avgLevel = getPerformanceLevel(avgScore).name;
+        criteriaBody.push([criterion, avgScore.toFixed(1), avgLevel]);
+    });
+
+    doc.autoTable({
+        head: [criteriaHead],
+        body: criteriaBody,
+        startY: y,
+        theme: 'striped',
+        headStyles: {
+            fillColor: isIndividual ? '#D3D3D3' : teamColor,
+            textColor: 0,
+            fontStyle: 'bold'
+        },
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: {
+            1: { halign: 'center', fontStyle: 'bold' },
+            2: { halign: 'center' }
+        },
+        didParseCell: (data) => {
+            if (data.section === 'body' && data.column.index === 2) {
+                const level = data.cell.raw;
+                data.cell.styles.fillColor = getPerformanceColorRGB(level);
+                data.cell.styles.textColor = (level.includes('Proceso') || level.includes('N/A')) ? BLACK : [255, 255, 255];
+            } else if (data.row.raw[1].includes('SEPARADOR')) {
+                data.cell.styles.fillColor = [220, 220, 220];
+                data.cell.styles.fontStyle = 'italic';
+                data.cell.styles.textColor = [100, 100, 100];
+            }
+        }
+    });
+
+    // --- COMENTARIO ADICIONAL ---
+    let commentY = doc.autoTable.previous.finalY + 15;
+    const commentKey = `${groupId}_${checklistId}_${teamColor}`;
+    const comment = appData.evaluationComments?.[commentKey];
+    if (comment) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Comentario:`, 10, commentY);
+        commentY += 5;
+        doc.setFont('helvetica', 'normal');
+        const commentLines = doc.splitTextToSize(comment, pageWidth - 20);
+        doc.text(commentLines, 10, commentY);
+        commentY += commentLines.length * 4 + 5;
+    } else {
+        commentY = doc.autoTable.previous.finalY + 5;
+    }
+
+    // --- RESUMEN FINAL DEL EQUIPO ---
+    const totalAvgScore = studentsData.reduce((sum, d) => sum + d.average, 0) / studentsData.length;
+    const finalPerformance = getPerformanceLevel(totalAvgScore);
+    doc.setFillColor(255, 255, 255);
+    doc.rect(10, commentY - 3, pageWidth - 20, 15, 'F');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`PROMEDIO FINAL ${isIndividual ? 'DEL ESTUDIANTE' : 'DEL EQUIPO'} (Base ${maxScorePerCriterion.toFixed(1)}): ${totalAvgScore.toFixed(2)}`, 15, commentY + 5);
+    doc.text(`NIVEL DE DESEMPEÑO: ${finalPerformance.name}`, pageWidth - 15, commentY + 5, { align: 'right' });
+
+    // ✅ DESCARGAR DIRECTAMENTE
+    const fileNamePrefix = isIndividual ? 'Individual_' + studentsData[0].name : `Equipo_${teamColor.replace('#', '')}`;
+    const fileName = `Reporte_${fileNamePrefix}_${checklist.name.replace(/\s/g, '_')}.pdf`;
+    doc.save(fileName);
+    showToast('PDF descargado exitosamente.', 'success');
+}
 
 
 
@@ -5294,6 +5485,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
