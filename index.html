@@ -976,15 +976,33 @@
                     </div>
 
 
- <!-- Campo de comentario adicional -->
+ <!-- Campo de comentario adicional 
   <div class="mb-3">
     <label for="evaluation-comment" class="form-label fw-bold">Comentario Adicional (opcional)</label>
     <textarea class="form-control" id="evaluation-comment" rows="2" placeholder="Ej: Buena participación, pero falta profundidad en el análisis..."></textarea>
   </small>
   </div>
+-->
 
-
-
+<!-- Campo de comentario adicional con botón de limpieza -->
+<div class="mb-3 position-relative">
+    <label for="evaluation-comment" class="form-label fw-bold">Comentario Adicional (opcional)</label>
+    <textarea 
+        class="form-control" 
+        id="evaluation-comment" 
+        rows="2" 
+        placeholder="Ej: Buena participación, pero falta profundidad en el análisis..."
+    ></textarea>
+    <!-- Botón de limpieza -->
+    <button 
+        type="button" 
+        class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 me-2 mt-2"
+        style="z-index: 10; font-size: 0.8rem; padding: 0.25rem 0.5rem;"
+        title="Limpiar comentario"
+        onclick="document.getElementById('evaluation-comment').value = '';">
+        <i class="bi bi-x-circle"></i>
+    </button>
+</div>
 
 
                     <div class="modal-footer mt-4">
@@ -5485,6 +5503,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
