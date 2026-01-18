@@ -2862,6 +2862,11 @@ if (studentData) {
     // 3. Update student results and save data (esto actualiza el color del checkbox/celda)
     updateStudentResults(studentId, groupId, checklistId);
     saveData();
+
+    // ✅ Actualizar los botones de reporte por equipo/individual en caso de que esté abierto el módulo de reportes
+if (document.getElementById('reports-module').classList.contains('active-module')) {
+    renderTeamReportButtons();
+}
 }
 
         
@@ -3257,6 +3262,17 @@ if (comment) {
 isSingleStudentSelected = false;
 
 // --- FIN NUEVO ---
+
+
+// ✅ ACTUALIZAR REPORTES SI ESTÁ ABIERTO
+if (document.getElementById('reports-module').classList.contains('active-module')) {
+    renderTeamReportButtons();
+}
+
+
+
+
+
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('groupEvaluationModal'));
             modal.hide();
@@ -5224,6 +5240,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
