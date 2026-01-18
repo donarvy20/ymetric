@@ -3268,17 +3268,16 @@ if (comment) {
   delete appData.evaluationComments[commentKey]; // Limpiar si está vacío
 }
             saveData();
+            // ✅ Actualizar los botones de reporte si el módulo de reportes está activo
+if (document.getElementById('reports-module').classList.contains('active-module')) {
+    renderTeamReportButtons();
+}
 
             // --- NUEVO: Después de aplicar una evaluación grupal, deshabilitar la tabla individual ---
 isSingleStudentSelected = false;
 
 // --- FIN NUEVO ---
 
-
-// ✅ ACTUALIZAR REPORTES SI ESTÁ ABIERTO
-if (document.getElementById('reports-module').classList.contains('active-module')) {
-    renderTeamReportButtons();
-}
 
 
 
@@ -5251,6 +5250,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
