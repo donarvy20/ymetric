@@ -620,14 +620,31 @@
                      <!--  <input type="text" id="student-search" class="form-control rounded-lg" placeholder="Buscar estudiante por nombre o apellido...">
                    <button type="button" id="clear-button" style="display:none;">X</button> -->
 
-
+<!--
 <div style="position: relative; display: inline-block; width: 100%;">
     <input type="text" id="student-search" class="form-control rounded-lg" placeholder="🔎Buscar estudiante" style="padding-right: 35px;">
     <button type="button" id="clear-button" style="display:none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #999; cursor: pointer;">X</button>
 </div>
+-->
 
 
+<!-- CAJA DE BÚSQUEDA CON LIMPIEZA Y VOZ -->
 
+  <div style="position: relative; display: inline-block; width: 100%;">
+    <input type="text" id="student-search" class="form-control rounded-lg" placeholder="🔎Buscar estudiante" style="padding-right: 70px;">
+    
+    <!-- Botón de limpieza (X) -->
+    <button type="button" id="clear-button" style="display:none; position: absolute; right: 45px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; color: #999; cursor: pointer; z-index: 10;">X</button>
+    
+    <!-- Botón de voz (micrófono) -->
+    <button type="button" id="voice-search-btn" title="Buscar por voz" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; color: #6c757d; cursor: pointer; z-index: 10;">
+      <i class="bi bi-mic"></i>
+    </button>
+  </div>
+</div>
+
+
+                        
                         
                     </div>
 
@@ -1063,7 +1080,61 @@
             '#00FA9A', '#008080'
         ];
 
-       
+
+
+
+
+
+
+
+
+
+/**
+ * Activa la búsqueda por voz usando la API Web Speech
+ */
+function startVoiceSearch() {
+    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+        showToast('Tu navegador no soporta reconocimiento de voz.', 'warning');
+        return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.trim();
+        document.getElementById('student-search').value = transcript;
+        // Disparar el evento 'input' para que se active el filtro y el botón X
+        document.getElementById('student-search').dispatchEvent(new Event('input'));
+        // Disparar el evento 'keyup' si tu filtro depende de él
+        document.getElementById('student-search').dispatchEvent(new Event('keyup'));
+        showToast(`Buscando: "${transcript}"`, 'info');
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Error en reconocimiento de voz:', event.error);
+        showToast('No se pudo reconocer el audio. Intenta de nuevo.', 'danger');
+    };
+
+    recognition.start();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
         
         function getPerformanceColorRGB(level) {
             // Modificación para manejar la nomenclatura exacta (Proceso vs En proceso)
@@ -5478,7 +5549,10 @@ document.addEventListener('click', function(e) {
 
 
 
-
+// Listener para el botón de voz
+document.getElementById('voice-search-btn').addEventListener('click', () => {
+    startVoiceSearch();
+});
 
 
 
@@ -5511,6 +5585,7 @@ button.addEventListener('click', function() {
 </script>
 </body>
 </html>
+
 
 
 
